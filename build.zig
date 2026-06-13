@@ -6,12 +6,46 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
+    const base_mod = b.addModule("starforge_base", .{
+        .root_source_file = b.path("src/base/root.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+
+    const mods = [_]std.Build.Module.Import{
+        .{ .name = "base", .module = base_mod },
+    };
+
     const starforge_mod = b.addModule("starforge", .{
         .root_source_file = b.path("src/root.zig"),
         .target = target,
         .optimize = optimize,
+        .imports = &mods,
     });
+
+    buildTests(b, &mods);
     buildExamples(b, target, optimize, starforge_mod);
+}
+
+fn buildTests(b: *std.Build, mods: []const std.Build.Module.Import) void {
+    const test_all_step = b.step("test", "Run all tests");
+
+    for (mods) |mod_entry| {
+        const name = mod_entry.name;
+        const mod = mod_entry.module;
+
+        const prefix_name = std.fmt.allocPrint(b.allocator, "test-{s}", .{name}) catch @panic("OOM");
+        const mod_tests = b.addTest(.{
+            .name = prefix_name,
+            .root_module = mod,
+        });
+
+        const test_step_desc = std.fmt.allocPrint(b.allocator, "Run tests of module: {s}", .{name}) catch @panic("OOM");
+        const test_step = b.step(prefix_name, test_step_desc);
+        const test_mod_cmd = b.addRunArtifact(mod_tests);
+        test_step.dependOn(&test_mod_cmd.step);
+        test_all_step.dependOn(&test_mod_cmd.step);
+    }
 }
 
 fn buildExamples(
