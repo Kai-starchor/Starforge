@@ -1,0 +1,19 @@
+{
+    "editor.formatOnSave": true,
+    "editor.rulers": [
+        120
+    ],
+    "editor.tabSize": 4,
+    "files.insertFinalNewline": true,
+    "files.trimFinalNewlines": true,
+    "files.eol": "\n",
+    "cSpell.words": [
+        // zig
+        "memcpy",
+        "memset",
+        "wyhash",
+        // project
+        "starforge",
+        "vtable"
+    ]
+}
