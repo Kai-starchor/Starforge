@@ -12,8 +12,18 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
+    const ecs_mod = b.addModule("starforge_ecs", .{
+        .root_source_file = b.path("src/ecs/root.zig"),
+        .target = target,
+        .optimize = optimize,
+        .imports = &[_]std.Build.Module.Import{
+            .{ .name = "base", .module = base_mod },
+        },
+    });
+
     const mods = [_]std.Build.Module.Import{
         .{ .name = "base", .module = base_mod },
+        .{ .name = "ecs", .module = ecs_mod },
     };
 
     const starforge_mod = b.addModule("starforge", .{
