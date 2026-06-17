@@ -18,13 +18,29 @@ pub const TypeAddress = struct {
         return .{ .val = @intFromPtr(&S.dummy) };
     }
 
+    /// Equality check based on the address value.
     pub fn eql(self: @This(), other: @This()) bool {
         return self.val == other.val;
     }
 
-    /// A valid TypeAddress has a non-zero address value.
+    pub const ValidateError = error{
+        /// A valid TypeAddress has a non-zero address value.
+        InvalidAddress,
+    };
+
+    /// Validates that the TypeAddress has a non-zero address value.
+    pub fn validate(self: @This()) ValidateError!void {
+        if (self.val == INVALID_ADDRESS) {
+            return ValidateError.InvalidAddress;
+        }
+    }
+
+    /// Checks if the TypeAddress is valid according to the validate function.
     pub fn isValid(self: @This()) bool {
-        return self.val != INVALID_ADDRESS;
+        self.validate() catch {
+            return false;
+        };
+        return true;
     }
 };
 
@@ -136,22 +152,41 @@ pub const TypeMeta = struct {
             std.mem.eql(u8, self.name, other.name);
     }
 
-    /// Validates the metadata fields. A valid TypeMeta must have a valid address, and if the alignment is greater
-    /// than 0, it must be a power of two and divide the size evenly.
-    pub fn isValid(self: @This()) bool {
-        if (!self.addr.isValid()) {
-            return false;
-        }
+    const ValidateError =
+        TypeAddress.ValidateError ||
+        error{
+            /// If alignment is greater than 0, it must be a power of two.
+            AlignmentNotPowerOfTwo,
+            /// If alignment is greater than 0, it must divide the size evenly.
+            AlignmentNotDivisibleBySize,
+            /// If alignment is 0, size must also be 0 (e.g. for void type).
+            SizeNotZeroWithZeroAlignment,
+        };
+
+    /// Validates the invariants of the TypeMeta struct.
+    pub fn validate(self: @This()) ValidateError!void {
+        // A valid TypeMeta must have a valid address,
+        try self.addr.validate();
         if (self.alignment > 0) {
-            if (!std.math.isPowerOfTwo(self.alignment) or self.size % self.alignment != 0) {
-                return false;
+            if (!std.math.isPowerOfTwo(self.alignment)) {
+                return ValidateError.AlignmentNotPowerOfTwo;
+            }
+            if (self.size % self.alignment != 0) {
+                return ValidateError.AlignmentNotDivisibleBySize;
             }
         } else {
             if (self.size > 0) {
-                return false;
+                return ValidateError.SizeNotZeroWithZeroAlignment;
             }
             // Allow zero sized type like void to be registered.
         }
+    }
+
+    /// Checks if the TypeMeta is valid according to the validate function.
+    pub fn isValid(self: @This()) bool {
+        self.validate() catch {
+            return false;
+        };
         return true;
     }
 };
