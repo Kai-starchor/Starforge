@@ -17,6 +17,7 @@ scope: Scope,
 
 pub const VTable = struct {
     allocTraceId: *const fn (self: *anyopaque) Trace.Id,
+    decideTraceFlag: *const fn (self: *anyopaque, trace_id: Trace.Id) Trace.Flag,
     allocSpanId: *const fn (self: *anyopaque, trace_id: Trace.Id) Span.Id,
     recordSpan: *const fn (self: *anyopaque, span: *const Span) void,
     recordEvent: *const fn (self: *anyopaque, event: *const Event) void,
@@ -40,14 +41,19 @@ pub fn allocTraceId(self: @This()) Trace.Id {
     return self.vtable.allocTraceId(self.ptr);
 }
 
+/// Control the behavior of the trace. See `Trace.Flag` for more details.
+pub fn decideTraceFlag(self: @This(), trace_id: Trace.Id) Trace.Flag {
+    return self.vtable.decideTraceFlag(self.ptr, trace_id);
+}
+
 /// Allocate a new span ID. It is used to uniquely identify a span within a trace.
 pub fn allocSpanId(self: @This(), trace_id: Trace.Id) Span.Id {
     return self.vtable.allocSpanId(self.ptr, trace_id);
 }
 
 /// Start a new trace. It returns a `Trace` object that can be used to start spans and events.
-pub fn startTrace(self: @This(), flag: Trace.Flag) Trace {
-    return Trace.start(self, flag);
+pub fn startTrace(self: @This()) Trace {
+    return Trace.start(self);
 }
 
 /// Log the span information to the backend.

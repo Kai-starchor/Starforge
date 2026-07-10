@@ -33,12 +33,11 @@ pub const Flag = packed struct(u8) {
 };
 
 /// Start a new trace with the given logger and flag.
-pub fn start(logger: Logger, flag: Flag) @This() {
-    return .{
-        .logger = logger,
-        .id = logger.allocTraceId(),
-        .flag = flag,
-    };
+/// Use `Logger.startTrace` to call this function unless this trace succeed from other service.
+pub fn start(logger: Logger) @This() {
+    const id = logger.allocTraceId();
+    const flag = logger.decideTraceFlag(id);
+    return .{ .logger = logger, .id = id, .flag = flag };
 }
 
 /// Start a new span within this trace.
