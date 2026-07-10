@@ -1,6 +1,5 @@
-/// Logger defines the API for creating and recording traces.
-/// It is designed to be implemented by different backends like `Allocator`.
-pub const Logger = @This();
+//! Logger defines the API for creating and recording traces.
+//! It is designed to be implemented by different backends like `Allocator`.
 
 const std = @import("std");
 const Allocator = std.mem.Allocator;

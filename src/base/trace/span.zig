@@ -1,6 +1,5 @@
-/// Span represents a single unit of work within a trace. It contains information about the operation being
-/// performed, such as its name, start time, end time, any associated attributes, etc.
-pub const Span = @This();
+//! Span represents a single unit of work within a trace. It contains information about the operation being
+//! performed, such as its name, start time, end time, any associated attributes, etc.
 
 const std = @import("std");
 const Allocator = std.mem.Allocator;
@@ -16,7 +15,7 @@ pub const Id = u64;
 
 allocator: Allocator,
 trace: Trace,
-span_id: Span.Id,
+span_id: Id,
 parent_span_id: ?Id = null,
 status: Status = .unset,
 kind: Kind,
@@ -86,7 +85,7 @@ pub const Link = struct {
     /// The trace ID of the linked span.
     trace_id: Trace.Id,
     /// The span ID of the linked span.
-    span_id: Span.Id,
+    span_id: Id,
     /// The attributes associated with the link, providing additional context or metadata about the relationship.
     attrs: std.ArrayList(Attribute) = .empty,
 };

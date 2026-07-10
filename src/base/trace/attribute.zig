@@ -1,5 +1,4 @@
-/// A key-value pair that can be attached to a trace event or span.
-pub const Attribute = @This();
+//! A key-value pair that can be attached to a trace event or span.
 
 const std = @import("std");
 const Allocator = std.mem.Allocator;

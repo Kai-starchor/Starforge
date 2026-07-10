@@ -1,5 +1,4 @@
-/// Trace save a context of the entire lifecycle of an operation.
-pub const Trace = @This();
+//! Trace save a context of the entire lifecycle of an operation.
 
 const std = @import("std");
 const Allocator = std.mem.Allocator;
@@ -13,7 +12,7 @@ const Attribute = root.trace.Attribute;
 pub const Id = u128;
 
 logger: Logger,
-id: Trace.Id,
+id: Id,
 flag: Flag,
 
 /// Control the behavior of the trace.

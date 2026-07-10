@@ -1,5 +1,4 @@
-/// A safe wrapper for runtime-aligned buffers. Default to be unmanaged.
-pub const AlignedBuffer = @This();
+//! A safe wrapper for runtime-aligned buffers. Default to be unmanaged.
 
 const std = @import("std");
 

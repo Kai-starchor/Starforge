@@ -1,7 +1,6 @@
-/// Event is a single point in time that occurred during the execution of a Span.
-/// It can be used to record significant occurrences, such as errors, warnings, or any other noteworthy events that
-/// happen during the span's lifetime.
-pub const Event = @This();
+//! Event is a single point in time that occurred during the execution of a Span.
+//! It can be used to record significant occurrences, such as errors, warnings, or any other noteworthy events that
+//! happen during the span's lifetime.
 
 const std = @import("std");
 const Allocator = std.mem.Allocator;
