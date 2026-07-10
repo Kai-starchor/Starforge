@@ -23,6 +23,7 @@ kind: Kind,
 name: []const u8,
 real_start_ts: Timestamp,
 awake_start_ts: Timestamp,
+real_end_ts: ?Timestamp = null,
 awake_end_ts: ?Timestamp = null,
 links: std.ArrayList(Link) = .empty,
 attrs: std.ArrayList(Attribute) = .empty,
@@ -103,9 +104,15 @@ pub fn startSubSpan(self: @This(), allocator: Allocator, io: std.Io, kind: Kind,
 }
 
 pub fn emit(self: *@This(), io: std.Io) void {
+    self.real_end_ts = std.Io.Clock.real.now(io);
     self.awake_end_ts = std.Io.Clock.awake.now(io);
     self.trace.logger.recordSpan(self);
+    for (self.links.items) |*link| {
+        for (link.attrs.items) |*attr| attr.value.deinit(self.allocator);
+        link.attrs.deinit(self.allocator);
+    }
     self.links.deinit(self.allocator);
+    for (self.attrs.items) |*attr| attr.value.deinit(self.allocator);
     self.attrs.deinit(self.allocator);
 }
 
