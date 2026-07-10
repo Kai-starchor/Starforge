@@ -14,8 +14,7 @@ const Span = root.trace.Span;
 const Attribute = root.trace.Attribute;
 
 allocator: Allocator,
-logger: Logger,
-trace_id: Trace.Id,
+trace: Trace,
 span_id: Span.Id,
 level: Level,
 name: []const u8,
@@ -53,8 +52,7 @@ pub fn start(allocator: Allocator, io: std.Io, span: Span, level: Level, name: [
     const real_ts = span.real_start_ts.addDuration(.{ .clock = .real, .raw = duration.raw });
     return .{
         .allocator = allocator,
-        .logger = span.logger,
-        .trace_id = span.trace_id,
+        .trace = span.trace,
         .span_id = span.span_id,
         .level = level,
         .name = name,
@@ -63,7 +61,7 @@ pub fn start(allocator: Allocator, io: std.Io, span: Span, level: Level, name: [
 }
 
 pub fn emit(self: *@This()) void {
-    self.logger.recordEvent(self);
+    self.trace.logger.recordEvent(self);
     self.attrs.deinit(self.allocator);
 }
 

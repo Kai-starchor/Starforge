@@ -31,8 +31,8 @@ pub fn allocSpanId(self: @This(), trace_id: Trace.Id) Span.Id {
 }
 
 /// Start a new trace. It returns a `Trace` object that can be used to start spans and events.
-pub fn startTrace(self: @This()) Trace {
-    return Trace.start(self);
+pub fn startTrace(self: @This(), flag: Trace.Flag) Trace {
+    return Trace.start(self, flag);
 }
 
 /// Log the span information to the backend.

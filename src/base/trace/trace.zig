@@ -1,5 +1,4 @@
-/// Trace represents the entire lifecycle of an operation. It collects a group of related spans, which share the
-/// same trace_id.
+/// Trace save a context of the entire lifecycle of an operation.
 pub const Trace = @This();
 
 const std = @import("std");
@@ -13,16 +12,39 @@ const Attribute = root.trace.Attribute;
 
 pub const Id = u128;
 
+/// The starter of this trace. It is used to create new spans and events within the trace.
 logger: Logger,
-trace_id: Trace.Id,
+/// The unique identifier for this trace, correlate spans and events within the same trace.
+id: Trace.Id,
+/// Control the behavior of the trace.
+flag: Flag,
 
-pub fn start(logger: Logger) @This() {
+/// Control the behavior of the trace.
+pub const Flag = packed struct(u8) {
+    /// Indicates whether the trace is sampled or not.
+    sampled: bool, // bit 0
+    /// Reserved bits for future use. Should be set to 0.
+    _reserved: u7 = 0, // bits 1-7
+
+    pub fn fromByte(byte: u8) @This() {
+        return @bitCast(byte);
+    }
+
+    pub fn toByte(self: @This()) u8 {
+        return @bitCast(self);
+    }
+};
+
+/// Start a new trace with the given logger and flag.
+pub fn start(logger: Logger, flag: Flag) @This() {
     return .{
         .logger = logger,
-        .trace_id = logger.allocTraceId(),
+        .id = logger.allocTraceId(),
+        .flag = flag,
     };
 }
 
+/// Start a new span within this trace.
 pub fn startSpan(self: @This(), allocator: Allocator, io: std.Io, kind: Span.Kind, name: []const u8) Span {
     return Span.start(allocator, io, self, kind, name);
 }

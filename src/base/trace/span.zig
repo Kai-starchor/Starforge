@@ -15,8 +15,7 @@ const Attribute = root.trace.Attribute;
 pub const Id = u64;
 
 allocator: Allocator,
-logger: Logger,
-trace_id: Trace.Id,
+trace: Trace,
 span_id: Span.Id,
 parent_span_id: ?Id = null,
 status: Status = .unset,
@@ -81,9 +80,8 @@ pub const Link = struct {
 pub fn start(allocator: Allocator, io: std.Io, trace: Trace, kind: Kind, name: []const u8) @This() {
     return .{
         .allocator = allocator,
-        .logger = trace.logger,
-        .trace_id = trace.trace_id,
-        .span_id = trace.logger.allocSpanId(trace.trace_id),
+        .trace = trace,
+        .span_id = trace.logger.allocSpanId(trace.id),
         .kind = kind,
         .name = name,
         .real_start_ts = std.Io.Clock.real.now(io),
@@ -94,9 +92,8 @@ pub fn start(allocator: Allocator, io: std.Io, trace: Trace, kind: Kind, name: [
 pub fn startSubSpan(self: @This(), allocator: Allocator, io: std.Io, kind: Kind, name: []const u8) @This() {
     return .{
         .allocator = allocator,
-        .logger = self.logger,
-        .trace_id = self.trace_id,
-        .span_id = self.logger.allocSpanId(self.trace_id),
+        .trace = self.trace,
+        .span_id = self.trace.logger.allocSpanId(self.trace.id),
         .kind = kind,
         .parent_span_id = self.span_id,
         .name = name,
@@ -107,7 +104,7 @@ pub fn startSubSpan(self: @This(), allocator: Allocator, io: std.Io, kind: Kind,
 
 pub fn emit(self: *@This(), io: std.Io) void {
     self.awake_end_ts = std.Io.Clock.awake.now(io);
-    self.logger.recordSpan(self);
+    self.trace.logger.recordSpan(self);
     self.links.deinit(self.allocator);
     self.attrs.deinit(self.allocator);
 }
