@@ -17,14 +17,38 @@ allocator: Allocator,
 logger: Logger,
 trace_id: Trace.Id,
 span_id: Span.Id,
-level: Logger.Level,
+level: Level,
 name: []const u8,
-module: ?[]const u8 = null,
-message: ?[]const u8 = null,
 real_ts: Timestamp,
 attrs: std.ArrayList(Attribute) = .empty,
 
-pub fn start(allocator: Allocator, io: std.Io, span: Span, level: Logger.Level, name: []const u8) @This() {
+/// Level defines the severity of an event. It is used to filter events based on their importance.
+pub const Level = enum(u8) {
+    /// Detailed information, typically of interest only when diagnosing problems.
+    verbose = 0,
+    /// Confirmation that things are working as expected.
+    info = 1,
+    /// An indication that something unexpected happened, or indicative of some problem in the near future
+    /// (e.g. 'disk space low'). The program is still working as expected.
+    warn = 2,
+    /// Due to a more serious problem, the program has not been able to work as expected.
+    err = 3,
+    /// A serious error, indicating that the program may not be able to continue.
+    /// This level is used for unrecoverable errors that require immediate attention and may lead to termination.
+    fatal = 4,
+
+    pub fn toString(self: @This()) []const u8 {
+        return switch (self) {
+            .verbose => "VERBOSE",
+            .info => "INFO",
+            .warn => "WARN",
+            .err => "ERROR",
+            .fatal => "FATAL",
+        };
+    }
+};
+
+pub fn start(allocator: Allocator, io: std.Io, span: Span, level: Level, name: []const u8) @This() {
     const duration = span.awake_start_ts.untilNow(io);
     const real_ts = span.real_start_ts.addDuration(.{ .clock = .real, .raw = duration.raw });
     return .{

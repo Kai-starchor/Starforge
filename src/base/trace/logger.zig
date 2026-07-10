@@ -10,39 +10,12 @@ const Trace = root.trace.Trace;
 const Span = root.trace.Span;
 const Event = root.trace.Event;
 
-/// Level defines the severity of a log message. It is used to filter log messages based on their importance.
-pub const Level = enum(u8) {
-    /// Detailed information, typically of interest only when diagnosing problems.
-    verbose = 0,
-    /// Confirmation that things are working as expected.
-    info = 1,
-    /// An indication that something unexpected happened, or indicative of some problem in the near future
-    /// (e.g. 'disk space low'). The program is still working as expected.
-    warn = 2,
-    /// Due to a more serious problem, the program has not been able to work as expected.
-    err = 3,
-    /// A serious error, indicating that the program may not be able to continue.
-    /// This level is used for unrecoverable errors that require immediate attention and may lead to termination.
-    fatal = 4,
-
-    pub fn toString(self: @This()) []const u8 {
-        return switch (self) {
-            .verbose => "VERBOSE",
-            .info => "INFO",
-            .warn => "WARN",
-            .err => "ERROR",
-            .fatal => "FATAL",
-        };
-    }
-};
-
 ptr: *anyopaque,
 vtable: *const VTable,
 
 pub const VTable = struct {
     allocTraceId: *const fn (self: *anyopaque) Trace.Id,
     allocSpanId: *const fn (self: *anyopaque, trace_id: Trace.Id) Span.Id,
-    recordTrace: *const fn (self: *anyopaque, trace: *const Trace) void,
     recordSpan: *const fn (self: *anyopaque, span: *const Span) void,
     recordEvent: *const fn (self: *anyopaque, event: *const Event) void,
 };
@@ -58,13 +31,8 @@ pub fn allocSpanId(self: @This(), trace_id: Trace.Id) Span.Id {
 }
 
 /// Start a new trace. It returns a `Trace` object that can be used to start spans and events.
-pub fn startTrace(self: @This(), allocator: Allocator, io: std.Io) Trace {
-    return Trace.start(allocator, io, self);
-}
-
-/// Log the trace information to the backend.
-pub fn recordTrace(self: @This(), trace: *const Trace) void {
-    self.vtable.recordTrace(self.ptr, trace);
+pub fn startTrace(self: @This()) Trace {
+    return Trace.start(self);
 }
 
 /// Log the span information to the backend.

@@ -20,9 +20,8 @@ trace_id: Trace.Id,
 span_id: Span.Id,
 parent_span_id: ?Id = null,
 status: Status = .unset,
+kind: Kind,
 name: []const u8,
-module: ?[]const u8 = null,
-message: ?[]const u8 = null,
 real_start_ts: Timestamp,
 awake_start_ts: Timestamp,
 awake_end_ts: ?Timestamp = null,
@@ -43,33 +42,64 @@ pub const Status = enum(i8) {
     }
 };
 
+/// Describes the role of a span in a trace. It helps to categorize spans based on their function in the system.
+pub const Kind = enum(u8) {
+    /// Internal operation within an application, not involving any cross-service/network/process communication.
+    internal = 0,
+    /// Server-side handling of a synchronous request, HTTP Server, gRPC server, etc. Usually paired with a client span
+    /// in another service.
+    /// This span should be created when a request is received and should be closed when the response is sent.
+    server = 1,
+    /// Client-side request to a server, HTTP Client, gRPC client, etc. Usually paired with a server span in another
+    /// service.
+    /// This span should be created when a request is sent and should be closed when the response is received.
+    client = 2,
+    /// Producer of an asynchronous message, Kafka, SQS, etc. Usually paired with a consumer span in another service.
+    /// This span won't wait for a response, the message might not be consumed when the span is closed.
+    producer = 3,
+    /// Consumer of an asynchronous message, Kafka, SQS, etc. Usually paired with a producer span in another service.
+    /// This span might be created way after the message was produced.
+    consumer = 4,
+
+    pub fn toString(self: @This()) []const u8 {
+        return switch (self) {
+            .internal => "INTERNAL",
+            .server => "SERVER",
+            .client => "CLIENT",
+            .producer => "PRODUCER",
+            .consumer => "CONSUMER",
+        };
+    }
+};
+
 pub const Link = struct {
     trace_id: Trace.Id,
     span_id: Span.Id,
     attrs: std.ArrayList(Attribute) = .empty,
 };
 
-pub fn start(allocator: Allocator, io: std.Io, trace: Trace, name: []const u8) @This() {
+pub fn start(allocator: Allocator, io: std.Io, trace: Trace, kind: Kind, name: []const u8) @This() {
     return .{
         .allocator = allocator,
         .logger = trace.logger,
         .trace_id = trace.trace_id,
         .span_id = trace.logger.allocSpanId(trace.trace_id),
+        .kind = kind,
         .name = name,
         .real_start_ts = std.Io.Clock.real.now(io),
         .awake_start_ts = std.Io.Clock.awake.now(io),
     };
 }
 
-pub fn startSubSpan(self: @This(), allocator: Allocator, io: std.Io, name: []const u8) @This() {
+pub fn startSubSpan(self: @This(), allocator: Allocator, io: std.Io, kind: Kind, name: []const u8) @This() {
     return .{
         .allocator = allocator,
         .logger = self.logger,
         .trace_id = self.trace_id,
         .span_id = self.logger.allocSpanId(self.trace_id),
+        .kind = kind,
         .parent_span_id = self.span_id,
         .name = name,
-        .module = self.module,
         .real_start_ts = std.Io.Clock.real.now(io),
         .awake_start_ts = std.Io.Clock.awake.now(io),
     };
@@ -90,6 +120,6 @@ pub fn addAttrs(self: *@This(), attrs: []const Attribute) Allocator.Error!void {
     try self.attrs.appendSlice(self.allocator, attrs);
 }
 
-pub fn startEvent(self: @This(), allocator: Allocator, io: std.Io, level: Logger.Level, name: []const u8) Event {
+pub fn startEvent(self: @This(), allocator: Allocator, io: std.Io, level: Event.Level, name: []const u8) Event {
     return Event.start(allocator, io, self, level, name);
 }

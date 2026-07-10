@@ -13,39 +13,16 @@ const Attribute = root.trace.Attribute;
 
 pub const Id = u128;
 
-allocator: Allocator,
 logger: Logger,
 trace_id: Trace.Id,
-links: std.ArrayList(Link) = .empty,
-attrs: std.ArrayList(Attribute) = .empty,
 
-pub const Link = struct {
-    trace_id: Trace.Id,
-    attrs: std.ArrayList(Attribute) = .empty,
-};
-
-pub fn start(allocator: Allocator, logger: Logger) @This() {
+pub fn start(logger: Logger) @This() {
     return .{
-        .allocator = allocator,
         .logger = logger,
         .trace_id = logger.allocTraceId(),
     };
 }
 
-pub fn emit(self: *@This()) void {
-    self.logger.recordTrace(self);
-    self.links.deinit(self.allocator);
-    self.attrs.deinit(self.allocator);
-}
-
-pub fn addLinks(self: *@This(), links: []const Link) Allocator.Error!void {
-    try self.links.appendSlice(self.allocator, links);
-}
-
-pub fn addAttrs(self: *@This(), attrs: []const Attribute) Allocator.Error!void {
-    try self.attrs.appendSlice(self.allocator, attrs);
-}
-
-pub fn startSpan(self: @This(), allocator: Allocator, io: std.Io, name: []const u8) Span {
-    return Span.start(allocator, io, self, name);
+pub fn startSpan(self: @This(), allocator: Allocator, io: std.Io, kind: Span.Kind, name: []const u8) Span {
+    return Span.start(allocator, io, self, kind, name);
 }
