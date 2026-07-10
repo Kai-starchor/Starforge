@@ -21,16 +21,23 @@ parent_span_id: ?Id = null,
 status: Status = .unset,
 kind: Kind,
 name: []const u8,
+/// Locate the span in a timeline.
 real_start_ts: Timestamp,
+/// Measure durations.
 awake_start_ts: Timestamp,
 real_end_ts: ?Timestamp = null,
 awake_end_ts: ?Timestamp = null,
+/// Relationship between two spans across different traces or services.
 links: std.ArrayList(Link) = .empty,
 attrs: std.ArrayList(Attribute) = .empty,
 
+/// Status defines the outcome of a span, indicating whether it completed successfully or encountered an error.
 pub const Status = enum(i8) {
+    /// The span has not yet been completed, and its status is not yet determined.
     unset = 0,
+    /// The span completed successfully without any errors.
     ok = 1,
+    /// The span encountered an error during its execution.
     err = -1,
 
     pub fn toString(self: @This()) []const u8 {
@@ -72,9 +79,15 @@ pub const Kind = enum(u8) {
     }
 };
 
+/// Link represents a relationship between two spans, allowing for the representation of complex trace structures that
+/// are not strictly hierarchical. It can be used to represent relationships such as "follows from" or "caused by",
+/// and can be used to correlate spans across different traces or services.
 pub const Link = struct {
+    /// The trace ID of the linked span.
     trace_id: Trace.Id,
+    /// The span ID of the linked span.
     span_id: Span.Id,
+    /// The attributes associated with the link, providing additional context or metadata about the relationship.
     attrs: std.ArrayList(Attribute) = .empty,
 };
 
@@ -103,9 +116,10 @@ pub fn startSubSpan(self: @This(), allocator: Allocator, io: std.Io, kind: Kind,
     };
 }
 
-pub fn emit(self: *@This(), io: std.Io) void {
+pub fn emit(self: *@This(), io: std.Io, status: Status) void {
     self.real_end_ts = std.Io.Clock.real.now(io);
     self.awake_end_ts = std.Io.Clock.awake.now(io);
+    self.status = status;
     self.trace.logger.recordSpan(self);
     for (self.links.items) |*link| {
         for (link.attrs.items) |*attr| attr.value.deinit(self.allocator);

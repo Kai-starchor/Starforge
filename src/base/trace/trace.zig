@@ -12,11 +12,8 @@ const Attribute = root.trace.Attribute;
 
 pub const Id = u128;
 
-/// The starter of this trace. It is used to create new spans and events within the trace.
 logger: Logger,
-/// The unique identifier for this trace, correlate spans and events within the same trace.
 id: Trace.Id,
-/// Control the behavior of the trace.
 flag: Flag,
 
 /// Control the behavior of the trace.
