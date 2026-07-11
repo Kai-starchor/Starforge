@@ -1,0 +1,8 @@
+{
+    "recommendations": [
+        "ziglang.vscode-zig",
+        "vadimcn.vscode-lldb",
+        "editorconfig.editorconfig",
+        "streetsidesoftware.code-spell-checker"
+    ]
+}

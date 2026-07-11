@@ -1,5 +1,5 @@
-//! Span represents a single unit of work within a trace. It contains information about the operation being
-//! performed, such as its name, start time, end time, any associated attributes, etc.
+//! Span represents a single unit of work within a trace. It contains information about the
+//! operation being performed, such as its name, start time, end time, attributes, etc.
 
 const std = @import("std");
 const Allocator = std.mem.Allocator;
@@ -30,7 +30,8 @@ awake_end_ts: ?Timestamp = null,
 links: std.ArrayList(Link) = .empty,
 attrs: std.ArrayList(Attribute) = .empty,
 
-/// Status defines the outcome of a span, indicating whether it completed successfully or encountered an error.
+/// Status defines the outcome of a span, indicating whether it completed successfully or
+/// encountered an error.
 pub const Status = enum(i8) {
     /// The span has not yet been completed, and its status is not yet determined.
     unset = 0,
@@ -48,22 +49,28 @@ pub const Status = enum(i8) {
     }
 };
 
-/// Describes the role of a span in a trace. It helps to categorize spans based on their function in the system.
+/// Describes the role of a span in a trace.
+/// It helps to categorize spans based on their function in the system.
 pub const Kind = enum(u8) {
-    /// Internal operation within an application, not involving any cross-service/network/process communication.
+    /// Internal operation within system, not involving any cross-network/process communication.
     internal = 0,
-    /// Server-side handling of a synchronous request, HTTP Server, gRPC server, etc. Usually paired with a client span
-    /// in another service.
-    /// This span should be created when a request is received and should be closed when the response is sent.
+    /// Server-side handling of a synchronous request, HTTP Server, gRPC server, etc. Usually paired
+    /// with a client span in another service.
+    /// This span should be created when a request is received and should be closed when the
+    /// response is sent.
     server = 1,
-    /// Client-side request to a server, HTTP Client, gRPC client, etc. Usually paired with a server span in another
-    /// service.
-    /// This span should be created when a request is sent and should be closed when the response is received.
+    /// Client-side request to a server, HTTP Client, gRPC client, etc. Usually paired with a server
+    /// span in another service.
+    /// This span should be created when a request is sent and should be closed when the response is
+    /// received.
     client = 2,
-    /// Producer of an asynchronous message, Kafka, SQS, etc. Usually paired with a consumer span in another service.
-    /// This span won't wait for a response, the message might not be consumed when the span is closed.
+    /// Producer of an asynchronous message, Kafka, SQS, etc. Usually paired with a consumer span in
+    /// another service.
+    /// This span won't wait for a response, the message might not be consumed when the span is
+    /// closed.
     producer = 3,
-    /// Consumer of an asynchronous message, Kafka, SQS, etc. Usually paired with a producer span in another service.
+    /// Consumer of an asynchronous message, Kafka, SQS, etc. Usually paired with a producer span in
+    /// another service.
     /// This span might be created way after the message was produced.
     consumer = 4,
 
@@ -78,15 +85,17 @@ pub const Kind = enum(u8) {
     }
 };
 
-/// Link represents a relationship between two spans, allowing for the representation of complex trace structures that
-/// are not strictly hierarchical. It can be used to represent relationships such as "follows from" or "caused by",
-/// and can be used to correlate spans across different traces or services.
+/// Link represents a relationship between two spans, allowing for the representation of complex
+/// trace structures that are not strictly hierarchical. It can be used to represent relationships
+/// such as "follows from" or "caused by", and can be used to correlate spans across different
+/// traces or services.
 pub const Link = struct {
     /// The trace ID of the linked span.
     trace_id: Trace.Id,
     /// The span ID of the linked span.
     span_id: Id,
-    /// The attributes associated with the link, providing additional context or metadata about the relationship.
+    /// The attributes associated with the link, providing additional context or metadata about the
+    /// relationship.
     attrs: std.ArrayList(Attribute) = .empty,
 };
 
@@ -102,7 +111,13 @@ pub fn start(allocator: Allocator, io: std.Io, trace: Trace, kind: Kind, name: [
     };
 }
 
-pub fn startSubSpan(self: @This(), allocator: Allocator, io: std.Io, kind: Kind, name: []const u8) @This() {
+pub fn startSubSpan(
+    self: @This(),
+    allocator: Allocator,
+    io: std.Io,
+    kind: Kind,
+    name: []const u8,
+) @This() {
     return .{
         .allocator = allocator,
         .trace = self.trace,
@@ -137,6 +152,12 @@ pub fn addAttrs(self: *@This(), attrs: []const Attribute) Allocator.Error!void {
     try self.attrs.appendSlice(self.allocator, attrs);
 }
 
-pub fn startEvent(self: @This(), allocator: Allocator, io: std.Io, level: Event.Level, name: []const u8) Event {
+pub fn startEvent(
+    self: @This(),
+    allocator: Allocator,
+    io: std.Io,
+    level: Event.Level,
+    name: []const u8,
+) Event {
     return Event.start(allocator, io, self, level, name);
 }

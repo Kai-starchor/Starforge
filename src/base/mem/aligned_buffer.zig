@@ -21,7 +21,8 @@ pub fn init(allocator: Allocator, size: usize, alignment: usize) Allocator.Error
     return @This(){ .original = original, .aligned = aligned };
 }
 
-/// Deinit the aligned buffer by freeing the original buffer. After this, the aligned buffer should not be used.
+/// Deinit the aligned buffer by freeing the original buffer. After this, the aligned buffer should
+/// not be used.
 pub fn deinit(self: *@This(), allocator: Allocator) void {
     allocator.free(self.original);
 }

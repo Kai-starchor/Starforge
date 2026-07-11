@@ -1,6 +1,6 @@
 //! Event is a single point in time that occurred during the execution of a Span.
-//! It can be used to record significant occurrences, such as errors, warnings, or any other noteworthy events that
-//! happen during the span's lifetime.
+//! It can be used to record significant occurrences, such as errors, warnings, or any other
+//! noteworthy events that happen during the span's lifetime.
 
 const std = @import("std");
 const Allocator = std.mem.Allocator;
@@ -26,13 +26,14 @@ pub const Level = enum(u8) {
     verbose = 0,
     /// Confirmation that things are working as expected.
     info = 1,
-    /// An indication that something unexpected happened, or indicative of some problem in the near future
-    /// (e.g. 'disk space low'). The program is still working as expected.
+    /// An indication that something unexpected happened, or indicative of some problem in the near
+    /// future (e.g. 'disk space low'). The program is still working as expected.
     warn = 2,
     /// Due to a more serious problem, the program has not been able to work as expected.
     err = 3,
     /// A serious error, indicating that the program may not be able to continue.
-    /// This level is used for unrecoverable errors that require immediate attention and may lead to termination.
+    /// This level is used for unrecoverable errors that require immediate attention and may lead to
+    /// termination.
     fatal = 4,
 
     pub fn toString(self: @This()) []const u8 {
