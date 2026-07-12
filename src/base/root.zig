@@ -12,6 +12,7 @@ pub const trace = struct {
 
 pub const util = struct {
     pub const random = @import("util/random.zig");
+    pub const EpochTime = @import("util/epoch_time.zig");
     pub const Uuid = @import("util/uuid/uuid.zig").Uuid;
 };
 
@@ -23,5 +24,6 @@ test {
     _ = trace.Event;
     _ = trace.Attribute;
     _ = util.random;
+    _ = util.EpochTime;
     _ = util.Uuid;
 }
