@@ -12,6 +12,7 @@ const Event = root.trace.Event;
 const Attribute = root.trace.Attribute;
 
 pub const Id = u64;
+pub const INVALID_ID: Id = 0;
 
 allocator: Allocator,
 trace: Trace,

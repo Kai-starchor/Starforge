@@ -7,13 +7,19 @@ const Timestamp = std.Io.Clock.Timestamp;
 const root = @import("../root.zig");
 const Logger = root.trace.Logger;
 const Span = root.trace.Span;
+const Event = root.trace.Event;
 const Attribute = root.trace.Attribute;
 
 pub const Id = u128;
+pub const INVALID_ID: Id = 0;
 
 logger: Logger,
 id: Id,
 flag: Flag,
+/// The minimum level of events that will be recorded.
+/// Events below this level will be silently discarded.
+/// Set this to override `Logger.event_level` if you want to specify this trace.
+event_level: Event.Level,
 
 /// Control the behavior of the trace.
 pub const Flag = packed struct(u8) {
@@ -36,7 +42,7 @@ pub const Flag = packed struct(u8) {
 pub fn start(logger: Logger) @This() {
     const id = logger.allocTraceId();
     const flag = logger.decideTraceFlag(id);
-    return .{ .logger = logger, .id = id, .flag = flag };
+    return .{ .logger = logger, .id = id, .flag = flag, .event_level = logger.event_level };
 }
 
 /// Start a new span within this trace.
