@@ -77,7 +77,7 @@ pub const V7 = packed struct {
         return @bitCast(self);
     }
 
-    pub fn toBytes(self: @This()) [16]u8 {
+    pub fn toString(self: @This()) [16]u8 {
         return @bitCast(self);
     }
 };
@@ -147,11 +147,11 @@ test "type transfer consistency" {
 
     const uuid_as_layout = uuid.toUuid();
     const uuid_as_u128 = uuid.toU128();
-    const uuid_as_bytes = uuid.toBytes();
+    const uuid_as_str = uuid.toString();
 
     const uuid_from_layout: V7 = @bitCast(uuid_as_layout);
     const uuid_from_u128: V7 = @bitCast(uuid_as_u128);
-    const uuid_from_bytes: V7 = @bitCast(uuid_as_bytes);
+    const uuid_from_bytes: V7 = @bitCast(uuid_as_str);
 
     try expectEqual(uuid, uuid_from_layout);
     try expectEqual(uuid, uuid_from_u128);

@@ -28,7 +28,7 @@ pub const Uuid = packed struct {
         return @bitCast(self);
     }
 
-    pub fn toBytes(self: @This()) [16]u8 {
+    pub fn toString(self: @This()) [16]u8 {
         return @bitCast(self);
     }
 };
