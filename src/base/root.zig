@@ -10,6 +10,11 @@ pub const trace = struct {
     pub const Attribute = @import("trace/attribute.zig");
 };
 
+pub const util = struct {
+    pub const random = @import("util/random.zig");
+    pub const Uuid = @import("util/uuid/uuid.zig").Uuid;
+};
+
 test {
     _ = mem.AlignedBuffer;
     _ = trace.Logger;
@@ -17,4 +22,6 @@ test {
     _ = trace.Span;
     _ = trace.Event;
     _ = trace.Attribute;
+    _ = util.random;
+    _ = util.Uuid;
 }
