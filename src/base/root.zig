@@ -2,6 +2,10 @@ pub const mem = struct {
     pub const AlignedBuffer = @import("mem/aligned_buffer.zig");
 };
 
+pub const string = struct {
+    pub const String = @import("string/string.zig");
+};
+
 pub const trace = struct {
     pub const Logger = @import("trace/logger.zig");
     pub const Trace = @import("trace/trace.zig");
@@ -18,6 +22,7 @@ pub const util = struct {
 
 test {
     _ = mem.AlignedBuffer;
+    _ = string.String;
     _ = trace.Logger;
     _ = trace.Trace;
     _ = trace.Span;
