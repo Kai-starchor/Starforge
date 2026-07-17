@@ -63,8 +63,13 @@ pub fn start(allocator: Allocator, io: std.Io, span: Span, level: Level, name: [
     };
 }
 
+/// Emit the event to the logger and deinit it.
 pub fn emit(self: *@This()) void {
     self.trace.logger.recordEvent(self);
+    self.deinit();
+}
+
+pub fn deinit(self: *@This()) void {
     for (self.attrs.items) |*attr| attr.value.deinit(self.allocator);
     self.attrs.deinit(self.allocator);
 }

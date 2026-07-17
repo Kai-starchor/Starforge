@@ -24,6 +24,7 @@ test {
     _ = mem.AlignedBuffer;
     _ = string.String;
     _ = trace.Logger;
+    _ = trace.Logger.TestingLogger;
     _ = trace.Trace;
     _ = trace.Span;
     _ = trace.Event;

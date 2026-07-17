@@ -2,6 +2,7 @@
 //! It is designed to be implemented by different backends like `Allocator`.
 
 pub const TerminalLogger = @import("logger_impl/terminal_logger.zig");
+pub const TestingLogger = @import("logger_impl/testing_logger.zig");
 
 const std = @import("std");
 const builtin = @import("builtin");
@@ -29,14 +30,14 @@ pub const VTable = struct {
     allocTraceId: *const fn (self: *anyopaque) Trace.Id,
     decideTraceFlag: *const fn (self: *anyopaque, trace_id: Trace.Id) Trace.Flag,
     allocSpanId: *const fn (self: *anyopaque, trace_id: Trace.Id) Span.Id,
-    recordSpan: *const fn (self: *anyopaque, span: *const Span) void,
-    recordEvent: *const fn (self: *anyopaque, event: *const Event) void,
+    recordSpan: *const fn (self: *anyopaque, span: *Span) void,
+    recordEvent: *const fn (self: *anyopaque, event: *Event) void,
     getResource: *const fn (self: *anyopaque) Resource,
 };
 
 /// Identifies the library or component that is producing log.
 pub const Scope = struct {
-    name: []const u8,
+    name: []const u8 = "",
     version: ?[]const u8 = null,
 };
 
@@ -72,12 +73,12 @@ pub fn startTrace(self: @This()) Trace {
 }
 
 /// Log the span information to the backend, use pointer since `Span` is a big struct.
-pub fn recordSpan(self: @This(), span: *const Span) void {
+pub fn recordSpan(self: @This(), span: *Span) void {
     self.vtable.recordSpan(self.ptr, span);
 }
 
 /// Log the event information to the backend, use pointer since `Event` is a big struct.
-pub fn recordEvent(self: @This(), event: *const Event) void {
+pub fn recordEvent(self: @This(), event: *Event) void {
     const level =
         if (event.trace.event_level != self.event_level)
             event.trace.event_level

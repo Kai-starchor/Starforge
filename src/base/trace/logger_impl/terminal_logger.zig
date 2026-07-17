@@ -50,7 +50,7 @@ fn allocSpanId(self: *anyopaque, _: Trace.Id) Span.Id {
     return rand.int(Span.Id) | 1; // Force the least bit to 1 to avoid zero span ID.
 }
 
-fn recordSpan(self: *anyopaque, span: *const Span) void {
+fn recordSpan(self: *anyopaque, span: *Span) void {
     const this: *@This() = @ptrCast(@alignCast(self));
 
     // prepare stderr writer
@@ -59,9 +59,19 @@ fn recordSpan(self: *anyopaque, span: *const Span) void {
     defer this.io.unlockStderr();
     const terminal = stderr.terminal();
 
-    // trace_id-span_id start_ts ~ end_ts duration_ms
+    // trace_id-span_id scope_name scope_version start_ts ~ end_ts duration_ms
+
     writeId(terminal.writer, span.trace.id, span.id);
+
+    const scope = span.trace.logger.scope;
+    if (scope.name.len > 0) {
+        terminal.writer.print(" {s}", .{scope.name}) catch {};
+    }
+    if (scope.version) |version| {
+        terminal.writer.print(" {s}", .{version}) catch {};
+    }
     terminal.writer.writeAll(" ") catch {};
+
     writeTimestamp(terminal.writer, span.real_start_ts);
     terminal.writer.writeAll(" ~ ") catch {};
     std.debug.assert(span.real_end_ts != null);
@@ -100,7 +110,7 @@ fn recordSpan(self: *anyopaque, span: *const Span) void {
     }
 }
 
-fn recordEvent(self: *anyopaque, event: *const root.trace.Event) void {
+fn recordEvent(self: *anyopaque, event: *root.trace.Event) void {
     const this: *@This() = @ptrCast(@alignCast(self));
     // prepare stderr writer
     var buffer: [64]u8 = undefined;
@@ -108,11 +118,21 @@ fn recordEvent(self: *anyopaque, event: *const root.trace.Event) void {
     const terminal = stderr.terminal();
     defer this.io.unlockStderr();
 
-    // prefix: trace_id-span_id epoch_time
+    // prefix: trace_id-span_id scope_name scope_version epoch_time
     if (@intFromEnum(event.level) < @intFromEnum(root.trace.Event.Level.info)) {
         terminal.setColor(.dim) catch {};
     }
     writeId(terminal.writer, event.trace.id, event.span_id);
+
+    const scope = event.trace.logger.scope;
+    if (scope.name.len > 0) {
+        terminal.writer.print(" {s}", .{scope.name}) catch {};
+    }
+    if (scope.version) |version| {
+        terminal.writer.print(" {s}", .{version}) catch {};
+    }
+    terminal.writer.writeAll(" ") catch {};
+
     terminal.writer.writeAll(" ") catch {};
     writeTimestamp(terminal.writer, event.real_ts);
     terminal.writer.writeAll("\n +-- ") catch {};

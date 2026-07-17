@@ -131,11 +131,16 @@ pub fn startSubSpan(
     };
 }
 
+/// Emit the span to the logger and deinit it.
 pub fn emit(self: *@This(), io: std.Io, status: Status) void {
     self.real_end_ts = std.Io.Clock.real.now(io);
     self.awake_end_ts = std.Io.Clock.awake.now(io);
     self.status = status;
     self.trace.logger.recordSpan(self);
+    self.deinit();
+}
+
+pub fn deinit(self: *@This()) void {
     for (self.links.items) |*link| {
         for (link.attrs.items) |*attr| attr.value.deinit(self.allocator);
         link.attrs.deinit(self.allocator);
