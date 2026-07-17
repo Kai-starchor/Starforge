@@ -5,7 +5,7 @@ const std = @import("std");
 const Allocator = std.mem.Allocator;
 
 /// `Private` - Keep original buffer for deallocation.
-original: []u8,
+_original: []u8,
 /// Provide an aligned view of the original buffer.
 aligned: []u8,
 
@@ -18,13 +18,13 @@ pub fn init(allocator: Allocator, size: usize, alignment: usize) Allocator.Error
     const offset = std.mem.alignForward(usize, addr, alignment) - addr;
     const aligned = original[offset .. offset + size];
 
-    return @This(){ .original = original, .aligned = aligned };
+    return @This(){ ._original = original, .aligned = aligned };
 }
 
 /// Deinit the aligned buffer by freeing the original buffer. After this, the aligned buffer should
 /// not be used.
 pub fn deinit(self: *@This(), allocator: Allocator) void {
-    allocator.free(self.original);
+    allocator.free(self._original);
 }
 
 /// Convert the original buffer length to the aligned buffer length. Reverse of `alignedToOriginal`.

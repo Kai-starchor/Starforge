@@ -16,10 +16,8 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("src/ecs/root.zig"),
         .target = target,
         .optimize = optimize,
-        .imports = &[_]std.Build.Module.Import{
-            .{ .name = "base", .module = base_mod },
-        },
     });
+    ecs_mod.addImport("base", base_mod);
 
     const mods = [_]std.Build.Module.Import{
         .{ .name = "base", .module = base_mod },
@@ -30,8 +28,9 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("src/root.zig"),
         .target = target,
         .optimize = optimize,
-        .imports = &mods,
     });
+    starforge_mod.addImport("base", base_mod);
+    starforge_mod.addImport("ecs", ecs_mod);
 
     buildTests(b, &mods);
     buildExamples(b, target, optimize, starforge_mod);
@@ -44,14 +43,15 @@ fn buildTests(b: *std.Build, mods: []const std.Build.Module.Import) void {
         const name = mod_entry.name;
         const mod = mod_entry.module;
 
-        const prefix_name = std.fmt.allocPrint(b.allocator, "test-{s}", .{name}) catch @panic("OOM");
+        const prefix = std.fmt.allocPrint(b.allocator, "test-{s}", .{name}) catch @panic("OOM");
         const mod_tests = b.addTest(.{
-            .name = prefix_name,
+            .name = prefix,
             .root_module = mod,
         });
 
-        const test_step_desc = std.fmt.allocPrint(b.allocator, "Run tests of module: {s}", .{name}) catch @panic("OOM");
-        const test_step = b.step(prefix_name, test_step_desc);
+        const test_step_desc =
+            std.fmt.allocPrint(b.allocator, "Run tests of {s}", .{name}) catch @panic("OOM");
+        const test_step = b.step(prefix, test_step_desc);
         const test_mod_cmd = b.addRunArtifact(mod_tests);
         test_step.dependOn(&test_mod_cmd.step);
         test_all_step.dependOn(&test_mod_cmd.step);
@@ -69,29 +69,29 @@ fn buildExamples(
         path: []const u8,
     }{
         .{ .name = "hello", .path = "examples/hello.zig" },
+        .{ .name = "trace", .path = "examples/trace.zig" },
     }) |example_config| {
         const name = example_config.name;
         const path = example_config.path;
 
-        const prefix_name = std.fmt.allocPrint(b.allocator, "example-{s}", .{name}) catch @panic("OOM");
-        const example_mod = b.addModule(prefix_name, .{
+        const prefix = std.fmt.allocPrint(b.allocator, "example-{s}", .{name}) catch @panic("OOM");
+        const example_mod = b.addModule(prefix, .{
             .root_source_file = b.path(path),
             .target = target,
             .optimize = optimize,
-            .imports = &.{
-                .{ .name = "starforge", .module = starforge_mod },
-            },
         });
+        example_mod.addImport("starforge", starforge_mod);
 
         const example = b.addExecutable(.{
-            .name = prefix_name,
+            .name = prefix,
             .root_module = example_mod,
         });
         const build_example_cmd = b.addInstallArtifact(example, .{});
 
         // Add cmd: zig build example-{name}
-        const run_step_desc = std.fmt.allocPrint(b.allocator, "Run example: {s}", .{name}) catch @panic("OOM");
-        const run_step = b.step(prefix_name, run_step_desc);
+        const run_step_desc =
+            std.fmt.allocPrint(b.allocator, "Run example: {s}", .{name}) catch @panic("OOM");
+        const run_step = b.step(prefix, run_step_desc);
         const run_example_cmd = b.addRunArtifact(example);
         run_example_cmd.step.dependOn(&build_example_cmd.step);
         run_step.dependOn(&run_example_cmd.step);

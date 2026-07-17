@@ -1,7 +1,10 @@
 //! Logger defines the API for creating and recording traces.
 //! It is designed to be implemented by different backends like `Allocator`.
 
+pub const TerminalLogger = @import("logger_impl/terminal_logger.zig");
+
 const std = @import("std");
+const builtin = @import("builtin");
 const Allocator = std.mem.Allocator;
 
 const root = @import("../root.zig");
@@ -16,7 +19,11 @@ scope: Scope,
 /// The minimum level of events that will be recorded.
 /// Events below this level will be silently discarded.
 /// Can be overridden by `Trace.event_level`.
-event_level: Event.Level = .info,
+event_level: Event.Level = switch (builtin.mode) {
+    .Debug => .debug,
+    .ReleaseSafe => .info,
+    .ReleaseFast, .ReleaseSmall => .warn,
+},
 
 pub const VTable = struct {
     allocTraceId: *const fn (self: *anyopaque) Trace.Id,
@@ -76,7 +83,7 @@ pub fn recordEvent(self: @This(), event: *const Event) void {
             event.trace.event_level
         else
             self.event_level;
-    if (event.level < level) return;
+    if (@intFromEnum(event.level) < @intFromEnum(level)) return;
     self.vtable.recordEvent(self.ptr, event);
 }
 

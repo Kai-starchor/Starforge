@@ -3,7 +3,7 @@
 
 const std = @import("std");
 const Allocator = std.mem.Allocator;
-const Timestamp = std.Io.Clock.Timestamp;
+const Timestamp = std.Io.Timestamp;
 
 const root = @import("../root.zig");
 const Logger = root.trace.Logger;
@@ -16,7 +16,7 @@ pub const INVALID_ID: Id = 0;
 
 allocator: Allocator,
 trace: Trace,
-span_id: Id,
+id: Id,
 parent_span_id: ?Id = null,
 status: Status = .unset,
 kind: Kind,
@@ -104,7 +104,7 @@ pub fn start(allocator: Allocator, io: std.Io, trace: Trace, kind: Kind, name: [
     return .{
         .allocator = allocator,
         .trace = trace,
-        .span_id = trace.logger.allocSpanId(trace.id),
+        .id = trace.logger.allocSpanId(trace.id),
         .kind = kind,
         .name = name,
         .real_start_ts = std.Io.Clock.real.now(io),
@@ -122,9 +122,9 @@ pub fn startSubSpan(
     return .{
         .allocator = allocator,
         .trace = self.trace,
-        .span_id = self.trace.logger.allocSpanId(self.trace.id),
+        .id = self.trace.logger.allocSpanId(self.trace.id),
         .kind = kind,
-        .parent_span_id = self.span_id,
+        .parent_span_id = self.id,
         .name = name,
         .real_start_ts = std.Io.Clock.real.now(io),
         .awake_start_ts = std.Io.Clock.awake.now(io),

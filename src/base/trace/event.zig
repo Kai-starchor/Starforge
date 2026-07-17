@@ -4,7 +4,7 @@
 
 const std = @import("std");
 const Allocator = std.mem.Allocator;
-const Timestamp = std.Io.Clock.Timestamp;
+const Timestamp = std.Io.Timestamp;
 
 const root = @import("../root.zig");
 const Logger = root.trace.Logger;
@@ -22,23 +22,26 @@ attrs: std.ArrayList(Attribute) = .empty,
 
 /// Level defines the severity of an event. It is used to filter events based on their importance.
 pub const Level = enum(u8) {
-    /// Detailed information, typically of interest only when diagnosing problems.
+    /// Detailed information for diagnosing problems.
     verbose = 0,
+    /// Debug information for development.
+    debug = 1,
     /// Confirmation that things are working as expected.
-    info = 1,
+    info = 2,
     /// An indication that something unexpected happened, or indicative of some problem in the near
     /// future (e.g. 'disk space low'). The program is still working as expected.
-    warn = 2,
+    warn = 3,
     /// Due to a more serious problem, the program has not been able to work as expected.
-    err = 3,
+    err = 4,
     /// A serious error, indicating that the program may not be able to continue.
     /// This level is used for unrecoverable errors that require immediate attention and may lead to
     /// termination.
-    fatal = 4,
+    fatal = 5,
 
     pub fn toString(self: @This()) []const u8 {
         return switch (self) {
             .verbose => "VERBOSE",
+            .debug => "DEBUG",
             .info => "INFO",
             .warn => "WARN",
             .err => "ERROR",
@@ -48,12 +51,12 @@ pub const Level = enum(u8) {
 };
 
 pub fn start(allocator: Allocator, io: std.Io, span: Span, level: Level, name: []const u8) @This() {
-    const duration = span.awake_start_ts.untilNow(io);
-    const real_ts = span.real_start_ts.addDuration(.{ .clock = .real, .raw = duration.raw });
+    const duration = span.awake_start_ts.untilNow(io, .awake);
+    const real_ts = span.real_start_ts.addDuration(duration);
     return .{
         .allocator = allocator,
         .trace = span.trace,
-        .span_id = span.span_id,
+        .span_id = span.id,
         .level = level,
         .name = name,
         .real_ts = real_ts,
