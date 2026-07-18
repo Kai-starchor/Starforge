@@ -12,7 +12,6 @@ const Trace = root.trace.Trace;
 const Span = root.trace.Span;
 const Attribute = root.trace.Attribute;
 
-allocator: Allocator,
 trace: Trace,
 span_id: Span.Id,
 level: Level,
@@ -50,11 +49,11 @@ pub const Level = enum(u8) {
     }
 };
 
-pub fn start(allocator: Allocator, io: std.Io, span: Span, level: Level, name: []const u8) @This() {
+pub fn start(span: Span, level: Level, name: []const u8) @This() {
+    const io = span.trace.logger.getIo();
     const duration = span.awake_start_ts.untilNow(io, .awake);
     const real_ts = span.real_start_ts.addDuration(duration);
     return .{
-        .allocator = allocator,
         .trace = span.trace,
         .span_id = span.id,
         .level = level,
@@ -70,10 +69,11 @@ pub fn emit(self: *@This()) void {
 }
 
 pub fn deinit(self: *@This()) void {
-    for (self.attrs.items) |*attr| attr.value.deinit(self.allocator);
-    self.attrs.deinit(self.allocator);
+    const allocator = self.trace.logger.getAllocator();
+    for (self.attrs.items) |*attr| attr.value.deinit(allocator);
+    self.attrs.deinit(allocator);
 }
 
 pub fn addAttrs(self: *@This(), attrs: []const Attribute) Allocator.Error!void {
-    try self.attrs.appendSlice(self.allocator, attrs);
+    try self.attrs.appendSlice(self.trace.logger.getAllocator(), attrs);
 }

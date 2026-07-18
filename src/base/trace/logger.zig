@@ -32,6 +32,8 @@ pub const VTable = struct {
     allocSpanId: *const fn (self: *anyopaque, trace_id: Trace.Id) Span.Id,
     recordSpan: *const fn (self: *anyopaque, span: *Span) void,
     recordEvent: *const fn (self: *anyopaque, event: *Event) void,
+    getAllocator: *const fn (self: *anyopaque) Allocator,
+    getIo: *const fn (self: *anyopaque) std.Io,
     getResource: *const fn (self: *anyopaque) Resource,
 };
 
@@ -86,6 +88,16 @@ pub fn recordEvent(self: @This(), event: *Event) void {
             self.event_level;
     if (@intFromEnum(event.level) < @intFromEnum(level)) return;
     self.vtable.recordEvent(self.ptr, event);
+}
+
+/// Get the allocator of the logger. It is used to allocate memory for spans and events.
+pub fn getAllocator(self: @This()) Allocator {
+    return self.vtable.getAllocator(self.ptr);
+}
+
+/// Get the IO of the logger. It is used to get the current time for spans and events.
+pub fn getIo(self: @This()) std.Io {
+    return self.vtable.getIo(self.ptr);
 }
 
 /// Get the resource information of the logger.

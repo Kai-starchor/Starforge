@@ -14,7 +14,6 @@ const Attribute = root.trace.Attribute;
 pub const Id = u64;
 pub const INVALID_ID: Id = 0;
 
-allocator: Allocator,
 trace: Trace,
 id: Id,
 parent_span_id: ?Id = null,
@@ -100,9 +99,9 @@ pub const Link = struct {
     attrs: std.ArrayList(Attribute) = .empty,
 };
 
-pub fn start(allocator: Allocator, io: std.Io, trace: Trace, kind: Kind, name: []const u8) @This() {
+pub fn start(trace: Trace, kind: Kind, name: []const u8) @This() {
+    const io = trace.logger.getIo();
     return .{
-        .allocator = allocator,
         .trace = trace,
         .id = trace.logger.allocSpanId(trace.id),
         .kind = kind,
@@ -112,15 +111,9 @@ pub fn start(allocator: Allocator, io: std.Io, trace: Trace, kind: Kind, name: [
     };
 }
 
-pub fn startSubSpan(
-    self: @This(),
-    allocator: Allocator,
-    io: std.Io,
-    kind: Kind,
-    name: []const u8,
-) @This() {
+pub fn startSubSpan(self: @This(), kind: Kind, name: []const u8) @This() {
+    const io = self.trace.logger.getIo();
     return .{
-        .allocator = allocator,
         .trace = self.trace,
         .id = self.trace.logger.allocSpanId(self.trace.id),
         .kind = kind,
@@ -132,7 +125,8 @@ pub fn startSubSpan(
 }
 
 /// Emit the span to the logger and deinit it.
-pub fn emit(self: *@This(), io: std.Io, status: Status) void {
+pub fn emit(self: *@This(), status: Status) void {
+    const io = self.trace.logger.getIo();
     self.real_end_ts = std.Io.Clock.real.now(io);
     self.awake_end_ts = std.Io.Clock.awake.now(io);
     self.status = status;
@@ -141,29 +135,24 @@ pub fn emit(self: *@This(), io: std.Io, status: Status) void {
 }
 
 pub fn deinit(self: *@This()) void {
+    const allocator = self.trace.logger.getAllocator();
     for (self.links.items) |*link| {
-        for (link.attrs.items) |*attr| attr.value.deinit(self.allocator);
-        link.attrs.deinit(self.allocator);
+        for (link.attrs.items) |*attr| attr.value.deinit(allocator);
+        link.attrs.deinit(allocator);
     }
-    self.links.deinit(self.allocator);
-    for (self.attrs.items) |*attr| attr.value.deinit(self.allocator);
-    self.attrs.deinit(self.allocator);
+    self.links.deinit(allocator);
+    for (self.attrs.items) |*attr| attr.value.deinit(allocator);
+    self.attrs.deinit(allocator);
 }
 
 pub fn addLinks(self: *@This(), links: []const Link) Allocator.Error!void {
-    try self.links.appendSlice(self.allocator, links);
+    try self.links.appendSlice(self.trace.logger.getAllocator(), links);
 }
 
 pub fn addAttrs(self: *@This(), attrs: []const Attribute) Allocator.Error!void {
-    try self.attrs.appendSlice(self.allocator, attrs);
+    try self.attrs.appendSlice(self.trace.logger.getAllocator(), attrs);
 }
 
-pub fn startEvent(
-    self: @This(),
-    allocator: Allocator,
-    io: std.Io,
-    level: Event.Level,
-    name: []const u8,
-) Event {
-    return Event.start(allocator, io, self, level, name);
+pub fn startEvent(self: @This(), level: Event.Level, name: []const u8) Event {
+    return Event.start(self, level, name);
 }

@@ -16,6 +16,7 @@ const Attribute = root.trace.Attribute;
 const EpochTime = root.util.EpochTime;
 
 io: std.Io,
+allocator: std.mem.Allocator,
 resource: []const Attribute,
 
 pub fn interface(self: *@This(), scope: Logger.Scope) Logger {
@@ -27,6 +28,8 @@ pub fn interface(self: *@This(), scope: Logger.Scope) Logger {
             .allocSpanId = allocSpanId,
             .recordSpan = recordSpan,
             .recordEvent = recordEvent,
+            .getAllocator = getAllocator,
+            .getIo = getIo,
             .getResource = getResource,
         },
         .scope = scope,
@@ -63,6 +66,7 @@ fn recordSpan(self: *anyopaque, span: *Span) void {
 
     writeId(terminal.writer, span.trace.id, span.id);
 
+    terminal.setColor(.bold) catch {};
     const scope = span.trace.logger.scope;
     if (scope.name.len > 0) {
         terminal.writer.print(" {s}", .{scope.name}) catch {};
@@ -70,6 +74,7 @@ fn recordSpan(self: *anyopaque, span: *Span) void {
     if (scope.version) |version| {
         terminal.writer.print(" {s}", .{version}) catch {};
     }
+    terminal.setColor(.reset) catch {};
     terminal.writer.writeAll(" ") catch {};
 
     writeTimestamp(terminal.writer, span.real_start_ts);
@@ -124,6 +129,7 @@ fn recordEvent(self: *anyopaque, event: *root.trace.Event) void {
     }
     writeId(terminal.writer, event.trace.id, event.span_id);
 
+    terminal.setColor(.bold) catch {};
     const scope = event.trace.logger.scope;
     if (scope.name.len > 0) {
         terminal.writer.print(" {s}", .{scope.name}) catch {};
@@ -131,9 +137,9 @@ fn recordEvent(self: *anyopaque, event: *root.trace.Event) void {
     if (scope.version) |version| {
         terminal.writer.print(" {s}", .{version}) catch {};
     }
+    terminal.setColor(.reset) catch {};
     terminal.writer.writeAll(" ") catch {};
 
-    terminal.writer.writeAll(" ") catch {};
     writeTimestamp(terminal.writer, event.real_ts);
     terminal.writer.writeAll("\n +-- ") catch {};
 
@@ -169,6 +175,16 @@ fn recordEvent(self: *anyopaque, event: *root.trace.Event) void {
 fn getResource(self: *anyopaque) []const Attribute {
     const this: *@This() = @ptrCast(@alignCast(self));
     return this.resource;
+}
+
+fn getAllocator(self: *anyopaque) std.mem.Allocator {
+    const this: *@This() = @ptrCast(@alignCast(self));
+    return this.allocator;
+}
+
+fn getIo(self: *anyopaque) std.Io {
+    const this: *@This() = @ptrCast(@alignCast(self));
+    return this.io;
 }
 
 fn writeId(writer: *Writer, trace_id: u128, span_id: u64) void {

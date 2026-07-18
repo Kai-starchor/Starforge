@@ -47,6 +47,8 @@ pub fn interface(self: *@This(), scope: Logger.Scope) Logger {
             .allocSpanId = allocSpanId,
             .recordSpan = recordSpan,
             .recordEvent = recordEvent,
+            .getAllocator = getAllocator,
+            .getIo = getIo,
             .getResource = getResource,
         },
         .scope = scope,
@@ -103,6 +105,16 @@ fn getResource(self: *anyopaque) []const Attribute {
     return this.resource;
 }
 
+fn getAllocator(self: *anyopaque) std.mem.Allocator {
+    const this: *@This() = @ptrCast(@alignCast(self));
+    return this.allocator;
+}
+
+fn getIo(self: *anyopaque) std.Io {
+    const this: *@This() = @ptrCast(@alignCast(self));
+    return this.io;
+}
+
 const expectEqual = std.testing.expectEqual;
 const expectEqualStrings = std.testing.expectEqualStrings;
 
@@ -113,7 +125,7 @@ test "testing logger preserves attributes and links after emit" {
 
     const logger = testing_logger.interface(.{ .name = "test" });
     const trace = logger.startTrace();
-    var span = trace.startSpan(allocator, testing_logger.io, .internal, "operation");
+    var span = trace.startSpan(.internal, "operation");
     try span.addAttrs(&.{.{ .key = "span.key", .value = .{ .StringView = "span.value" } }});
     var link = Span.Link{ .trace_id = 1, .span_id = 3 };
     try link.attrs.append(
@@ -121,10 +133,10 @@ test "testing logger preserves attributes and links after emit" {
         .{ .key = "link.key", .value = .{ .StringView = "link.value" } },
     );
     try span.addLinks(&.{link});
-    var event = span.startEvent(allocator, testing_logger.io, .info, "started");
+    var event = span.startEvent(.info, "started");
     try event.addAttrs(&.{.{ .key = "event.key", .value = .{ .StringView = "event.value" } }});
     event.emit();
-    span.emit(testing_logger.io, .ok);
+    span.emit(.ok);
 
     const events = testing_logger.events.items;
     const spans = testing_logger.spans.items;
@@ -132,27 +144,26 @@ test "testing logger preserves attributes and links after emit" {
     try expectEqual(@as(usize, 2), records.len);
 
     const event_0 = events[records[0].index];
-    try expectEqualStrings("event.name", "started", event_0.name);
+    try expectEqualStrings("started", event_0.name);
     try expectEqualStrings("event.value", event_0.attrs.items[0].value.StringView);
 
     const span_1 = spans[records[1].index];
-    try expectEqualStrings("span.name", "operation", span_1.name);
+    try expectEqualStrings("operation", span_1.name);
     try expectEqualStrings("span.value", span_1.attrs.items[0].value.StringView);
     try expectEqual(@as(usize, 1), span_1.links.items.len);
     try expectEqualStrings("link.value", span_1.links.items[0].attrs.items[0].value.StringView);
 }
 
 test "testing logger filters events below the logger level" {
-    const allocator = std.testing.allocator;
     var testing_logger = init();
     defer testing_logger.deinit();
 
     const logger = testing_logger.interface(.{ .name = "test" });
     const trace = logger.startTrace();
-    var span = trace.startSpan(allocator, testing_logger.io, .internal, "operation");
-    var event = span.startEvent(allocator, testing_logger.io, .verbose, "ignored");
+    var span = trace.startSpan(.internal, "operation");
+    var event = span.startEvent(.verbose, "ignored");
     event.emit();
-    span.emit(testing_logger.io, .ok);
+    span.emit(.ok);
 
     try expectEqual(@as(usize, 1), testing_logger.records.items.len);
     try expectEqual(Record.Kind.span, testing_logger.records.items[0].kind);

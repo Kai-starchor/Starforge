@@ -48,10 +48,8 @@ pub fn start(logger: Logger) @This() {
 /// Start a new span within this trace.
 pub fn startSpan(
     self: @This(),
-    allocator: Allocator,
-    io: std.Io,
     kind: Span.Kind,
     name: []const u8,
 ) Span {
-    return Span.start(allocator, io, self, kind, name);
+    return Span.start(self, kind, name);
 }

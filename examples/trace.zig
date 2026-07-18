@@ -7,6 +7,7 @@ pub fn main(init: std.process.Init) !void {
 
     var terminal_logger = Logger.TerminalLogger{
         .io = init.io,
+        .allocator = init.gpa,
         .resource = &.{
             .{ .key = "service.name", .value = .{ .StringView = "trace-example" } },
         },
@@ -14,23 +15,23 @@ pub fn main(init: std.process.Init) !void {
     const logger = terminal_logger.interface(.{ .name = "trace-example" });
     const trace = logger.startTrace();
 
-    var span = trace.startSpan(init.gpa, init.io, .internal, "example-operation");
+    var span = trace.startSpan(.internal, "example-operation");
     try span.addAttrs(&.{
         .{ .key = "operation.kind", .value = .{ .StringView = "demo" } },
         .{ .key = "attempt", .value = .{ .Int = 1 } },
     });
 
-    var event = span.startEvent(init.gpa, init.io, .info, "operation-started");
+    var event = span.startEvent(.info, "operation-started");
     try event.addAttrs(&.{
         .{ .key = "message", .value = .{ .StringView = "terminal logger is working" } },
     });
     event.emit();
 
-    var child_span = span.startSubSpan(init.gpa, init.io, .internal, "child-operation");
+    var child_span = span.startSubSpan(.internal, "child-operation");
     try child_span.addAttrs(&.{
         .{ .key = "completed", .value = .{ .Bool = true } },
     });
-    child_span.emit(init.io, .ok);
+    child_span.emit(.ok);
 
-    span.emit(init.io, .ok);
+    span.emit(.ok);
 }
