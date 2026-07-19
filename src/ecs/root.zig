@@ -9,6 +9,7 @@ pub const Component = struct {
 };
 
 pub const Entity = struct {
+    pub const Id = @import("entity/id.zig");
     pub const Signature = @import("entity/signature.zig");
 };
 
@@ -17,5 +18,6 @@ test {
     _ = Component.Meta;
     _ = Component.Id;
     _ = Component.Registry;
+    _ = Entity.Id;
     _ = Entity.Signature;
 }

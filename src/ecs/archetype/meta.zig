@@ -10,7 +10,6 @@ const Archetype = root.Archetype;
 const Type = root.base.Type;
 const Component = root.Component;
 
-allocator: Allocator,
 id: Archetype.Id,
 signature: Archetype.Signature,
 /// A sorted list of component IDs in the archetype, used to determine the memory layout.
@@ -26,7 +25,6 @@ pub fn init(
 ) Allocator.Error!@This() {
     if (unsorted_columns.len == 0) {
         return .{
-            .allocator = allocator,
             .id = id,
             .signature = Archetype.Signature.init(allocator),
             .columns = .empty,
@@ -62,7 +60,6 @@ pub fn init(
     }
 
     return .{
-        .allocator = allocator,
         .id = id,
         .signature = signature,
         .columns = columns,
@@ -70,10 +67,10 @@ pub fn init(
     };
 }
 
-pub fn deinit(self: *@This()) void {
+pub fn deinit(self: *@This(), allocator: Allocator) void {
     self.signature.deinit();
-    self.columns.deinit(self.allocator);
-    self.comp_lookup.deinit(self.allocator);
+    self.columns.deinit(allocator);
+    self.comp_lookup.deinit(allocator);
 }
 
 const expect = std.testing.expect;
@@ -130,7 +127,7 @@ test "init sorts columns, builds signature and lookup" {
     defer ctx.deinit();
 
     var meta = try ctx.generateMeta(std.testing.allocator);
-    defer meta.deinit();
+    defer meta.deinit(std.testing.allocator);
 
     try expectEqual(4, meta.columns.items.len);
     // u64 -> [2]u32 -> u32 -> i32
