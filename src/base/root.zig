@@ -14,6 +14,13 @@ pub const trace = struct {
     pub const Attribute = @import("trace/attribute.zig");
 };
 
+pub const Type = struct {
+    pub const Address = @import("type/address.zig");
+    pub const Registry = @import("type/registry.zig");
+    pub const Id = @import("type/id.zig");
+    pub const Meta = @import("type/meta.zig");
+};
+
 pub const util = struct {
     pub const random = @import("util/random.zig");
     pub const EpochTime = @import("util/epoch_time.zig");
@@ -29,6 +36,10 @@ test {
     _ = trace.Span;
     _ = trace.Event;
     _ = trace.Attribute;
+    _ = Type.Address;
+    _ = Type.Registry;
+    _ = Type.Id;
+    _ = Type.Meta;
     _ = util.random;
     _ = util.EpochTime;
     _ = util.Uuid;
