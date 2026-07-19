@@ -9,5 +9,7 @@ pub const base = struct {
 
 pub const ecs = struct {
     const impl = @import("ecs");
-    pub const component = impl.component;
+    pub const Archetype = impl.Archetype;
+    pub const Component = impl.Component;
+    pub const Entity = impl.Entity;
 };

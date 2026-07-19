@@ -139,11 +139,11 @@ test "Interface forwards typed component pointers and context" {
     var dst = Component{ .value = 0 };
 
     interface.vtable.move(@ptrCast(&dst), @ptrCast(&src), interface.ctx);
-    try expectEqual(@as(u32, 7), dst.value);
+    try expectEqual(7, dst.value);
 
     interface.vtable.deinit(@ptrCast(&dst), interface.ctx);
-    try expectEqual(@as(u32, 0), dst.value);
-    try expectEqual(@as(usize, 1), context.deinit_count);
+    try expectEqual(0, dst.value);
+    try expectEqual(1, context.deinit_count);
 }
 
 test "Interface supports null context with default callbacks" {
@@ -157,10 +157,10 @@ test "Interface supports null context with default callbacks" {
     var dst = Component{ .value = 0 };
 
     interface.vtable.move(@ptrCast(&dst), @ptrCast(&src), interface.ctx);
-    try expectEqual(@as(u32, 4), dst.value);
+    try expectEqual(4, dst.value);
 
     interface.vtable.deinit(@ptrCast(&dst), interface.ctx);
-    try expectEqual(@as(u32, 4), dst.value);
+    try expectEqual(4, dst.value);
 }
 
 test "eql includes type ID, interface kind, vtable, and context" {

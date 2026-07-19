@@ -1,5 +1,7 @@
 pub const base = @import("base");
 
+pub const Archetype = @import("archetype/archetype.zig");
+
 pub const Component = struct {
     pub const Registry = @import("component/registry.zig");
     pub const Id = @import("component/id.zig");
@@ -11,6 +13,7 @@ pub const Entity = struct {
 };
 
 test {
+    _ = Archetype;
     _ = Component.Meta;
     _ = Component.Id;
     _ = Component.Registry;

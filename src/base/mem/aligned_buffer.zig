@@ -49,12 +49,12 @@ test "AlignedBuffer - init returns aligned writable slice" {
     var buffer = try init(allocator, 64, 16);
     defer buffer.deinit(allocator);
 
-    try expectEqual(@as(usize, 64), buffer.aligned.len);
+    try expectEqual(64, buffer.aligned.len);
     try expect(@intFromPtr(buffer.aligned.ptr) % 16 == 0);
 
     @memset(buffer.aligned, 0xAB);
-    try expectEqual(@as(u8, 0xAB), buffer.aligned[0]);
-    try expectEqual(@as(u8, 0xAB), buffer.aligned[63]);
+    try expectEqual(0xAB, buffer.aligned[0]);
+    try expectEqual(0xAB, buffer.aligned[63]);
 }
 
 test "AlignedBuffer - init supports multiple runtime alignments" {
@@ -64,7 +64,7 @@ test "AlignedBuffer - init supports multiple runtime alignments" {
         var buffer = try init(allocator, 17, alignment);
         defer buffer.deinit(allocator);
 
-        try expectEqual(@as(usize, 17), buffer.aligned.len);
+        try expectEqual(17, buffer.aligned.len);
         try expect(@intFromPtr(buffer.aligned.ptr) % alignment == 0);
     }
 }
@@ -75,7 +75,7 @@ test "AlignedBuffer - init handles zero-sized buffer" {
     var buffer = try init(allocator, 0, 8);
     defer buffer.deinit(allocator);
 
-    try expectEqual(@as(usize, 0), buffer.aligned.len);
+    try expectEqual(0, buffer.aligned.len);
 }
 
 test "AlignedBuffer - originalToAligned and alignedToOriginal are consistent" {

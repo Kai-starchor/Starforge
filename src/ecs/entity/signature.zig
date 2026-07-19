@@ -64,11 +64,47 @@ pub fn add(self: *@This(), ids: []const Component.Id.Val) Allocator.Error!void {
     self.rehash();
 }
 
+pub fn addIds(self: *@This(), ids: []const Component.Id) Allocator.Error!void {
+    var check_max_id: ?usize = null;
+    for (ids) |id| {
+        if (check_max_id == null or id.val > check_max_id.?) {
+            check_max_id = id.val;
+        }
+    }
+    if (check_max_id) |max_id| {
+        if (max_id >= self.mask.capacity()) {
+            try self.mask.resize(max_id + 1, false);
+        }
+    }
+    for (ids) |id| {
+        self.mask.set(id.val);
+    }
+    self.rehash();
+}
+
 /// Always shrink to fit after removing components.
 pub fn remove(self: *@This(), ids: []const Component.Id.Val) Allocator.Error!void {
     for (ids) |id| {
         if (id < self.mask.capacity()) {
             self.mask.unset(id);
+        }
+    }
+
+    // shrink to fit
+    if (self.mask.findLastSet()) |last_index| {
+        try self.mask.resize(last_index + 1, false);
+    } else {
+        try self.mask.resize(0, false);
+    }
+
+    self.rehash();
+}
+
+/// Always shrink to fit after removing components.
+pub fn removeIds(self: *@This(), ids: []const Component.Id) Allocator.Error!void {
+    for (ids) |id| {
+        if (id.val < self.mask.capacity()) {
+            self.mask.unset(id.val);
         }
     }
 

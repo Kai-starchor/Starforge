@@ -105,10 +105,10 @@ test "register assigns consecutive ids for new types" {
     const id_a = try registry.register(.init(u8), null);
     const id_b = try registry.register(.init(i16), null);
 
-    try expectEqual(@as(Type.Id.Val, 0), id_a.val);
-    try expectEqual(@as(Type.Id.Val, 0), registry.addrToId(Type.Address.of(u8)).?.val);
-    try expectEqual(@as(Type.Id.Val, 1), id_b.val);
-    try expectEqual(@as(Type.Id.Val, 1), registry.addrToId(Type.Address.of(i16)).?.val);
+    try expectEqual(0, id_a.val);
+    try expectEqual(0, registry.addrToId(Type.Address.of(u8)).?.val);
+    try expectEqual(1, id_b.val);
+    try expectEqual(1, registry.addrToId(Type.Address.of(i16)).?.val);
 }
 
 test "register revoke operation when out of memory" {
@@ -120,17 +120,17 @@ test "register revoke operation when out of memory" {
             const id = registry.register(.init(u32), null) catch |err| switch (err) {
                 // the registry should be left in a consistent state with no partial registration
                 error.OutOfMemory => {
-                    try expectEqual(@as(usize, 0), registry.meta_list.items.len);
-                    try expectEqual(@as(usize, 0), registry.addr_to_id.count());
+                    try expectEqual(0, registry.meta_list.items.len);
+                    try expectEqual(0, registry.addr_to_id.count());
                     try expect(registry.typeToId(u32) == null);
                     return err;
                 },
             };
 
             // the registry should contain the new type with correct metadata
-            try expectEqual(@as(Type.Id.Val, 0), id.val);
-            try expectEqual(@as(usize, 1), registry.meta_list.items.len);
-            try expectEqual(@as(usize, 1), registry.addr_to_id.count());
+            try expectEqual(0, id.val);
+            try expectEqual(1, registry.meta_list.items.len);
+            try expectEqual(1, registry.addr_to_id.count());
             try expect(registry.typeToId(u32).?.eql(id));
         }
     };

@@ -128,9 +128,9 @@ test "string from slice using SSO" {
     defer s.deinit(allocator);
 
     try expect(!s.isEmpty());
-    try expectEqual(s.len(), str.len);
-    try expectEqualStrings(s.slice(), str);
-    try expectEqual(s.capacity(), @This().MAX_SSO_LEN);
+    try expectEqual(str.len, s.len());
+    try expectEqualStrings(str, s.slice());
+    try expectEqual(@This().MAX_SSO_LEN, s.capacity());
     try expect(s.isSso());
 }
 
@@ -141,9 +141,9 @@ test "string from slice using heap allocation" {
     defer s.deinit(allocator);
 
     try expect(!s.isEmpty());
-    try expectEqual(s.len(), str.len);
-    try expectEqualStrings(s.slice(), str);
-    try expectEqual(s.capacity(), str.len);
+    try expectEqual(str.len, s.len());
+    try expectEqualStrings(str, s.slice());
+    try expectEqual(str.len, s.capacity());
     try expect(!s.isSso());
 }
 
@@ -155,7 +155,7 @@ test "edit string slice using SSO" {
 
     var mut = s.sliceMut();
     mut[0] = 'h';
-    try expectEqualStrings(s.slice(), "hello, Zig!");
+    try expectEqualStrings("hello, Zig!", s.slice());
 }
 
 test "edit string slice using heap allocation" {
@@ -166,5 +166,5 @@ test "edit string slice using heap allocation" {
 
     var mut = s.sliceMut();
     mut[0] = 't';
-    try expectEqualStrings(s.slice(), "this is a long string that exceeds the SSO limit.");
+    try expectEqualStrings("this is a long string that exceeds the SSO limit.", s.slice());
 }

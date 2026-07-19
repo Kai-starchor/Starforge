@@ -109,10 +109,10 @@ test "register assigns consecutive ids for new components" {
     const id_a = try registry.register(.{ .type_id = u8_type_id, .interface = .Trivial }, null);
     const id_b = try registry.register(.{ .type_id = i16_type_id, .interface = .Trivial }, null);
 
-    try expectEqual(@as(Component.Id.Val, 0), id_a.val);
-    try expectEqual(@as(Component.Id.Val, 0), registry.addrToId(Type.Address.of(u8)).?.val);
-    try expectEqual(@as(Component.Id.Val, 1), id_b.val);
-    try expectEqual(@as(Component.Id.Val, 1), registry.addrToId(Type.Address.of(i16)).?.val);
+    try expectEqual(0, id_a.val);
+    try expectEqual(0, registry.addrToId(Type.Address.of(u8)).?.val);
+    try expectEqual(1, id_b.val);
+    try expectEqual(1, registry.addrToId(Type.Address.of(i16)).?.val);
 }
 
 test "register revokes operation when out of memory" {
@@ -127,16 +127,16 @@ test "register revokes operation when out of memory" {
             const component_meta = Component.Meta{ .type_id = type_id, .interface = .Trivial };
             const id = registry.register(component_meta, null) catch |err| switch (err) {
                 error.OutOfMemory => {
-                    try expectEqual(@as(usize, 0), registry.meta_list.items.len);
-                    try expectEqual(@as(usize, 0), registry.addr_to_id.count());
+                    try expectEqual(0, registry.meta_list.items.len);
+                    try expectEqual(0, registry.addr_to_id.count());
                     try expect(registry.typeToId(u32) == null);
                     return err;
                 },
             };
 
-            try expectEqual(@as(Component.Id.Val, 0), id.val);
-            try expectEqual(@as(usize, 1), registry.meta_list.items.len);
-            try expectEqual(@as(usize, 1), registry.addr_to_id.count());
+            try expectEqual(0, id.val);
+            try expectEqual(1, registry.meta_list.items.len);
+            try expectEqual(1, registry.addr_to_id.count());
             try expect(registry.typeToId(u32).?.eql(id));
         }
     };

@@ -57,35 +57,35 @@ const expectError = std.testing.expectError;
 test "fromUnixTimestamp converts Unix epoch" {
     const time = fromUnixTimestamp(.zero);
 
-    try expectEqual(@as(Year, 1970), time.year);
+    try expectEqual(1970, time.year);
     try expectEqual(Month.jan, time.month);
-    try expectEqual(@as(u5, 1), time.day);
-    try expectEqual(@as(u5, 0), time.hours);
-    try expectEqual(@as(u6, 0), time.minutes);
-    try expectEqual(@as(u6, 0), time.seconds);
+    try expectEqual(1, time.day);
+    try expectEqual(0, time.hours);
+    try expectEqual(0, time.minutes);
+    try expectEqual(0, time.seconds);
 }
 
 test "fromUnixTimestamp clamps negative timestamps" {
     const time = fromUnixTimestamp(Timestamp.fromNanoseconds(-1));
 
-    try expectEqual(@as(Year, 1970), time.year);
+    try expectEqual(1970, time.year);
     try expectEqual(Month.jan, time.month);
-    try expectEqual(@as(u5, 1), time.day);
-    try expectEqual(@as(u5, 0), time.hours);
-    try expectEqual(@as(u6, 0), time.minutes);
-    try expectEqual(@as(u6, 0), time.seconds);
+    try expectEqual(1, time.day);
+    try expectEqual(0, time.hours);
+    try expectEqual(0, time.minutes);
+    try expectEqual(0, time.seconds);
 }
 
 test "fromUnixTimestamp converts date and time" {
     const timestamp = Timestamp.fromNanoseconds(1_704_164_645 * std.time.ns_per_s);
     const time = fromUnixTimestamp(timestamp);
 
-    try expectEqual(@as(Year, 2024), time.year);
+    try expectEqual(2024, time.year);
     try expectEqual(Month.jan, time.month);
-    try expectEqual(@as(u5, 2), time.day);
-    try expectEqual(@as(u5, 3), time.hours);
-    try expectEqual(@as(u6, 4), time.minutes);
-    try expectEqual(@as(u6, 5), time.seconds);
+    try expectEqual(2, time.day);
+    try expectEqual(3, time.hours);
+    try expectEqual(4, time.minutes);
+    try expectEqual(5, time.seconds);
 }
 
 test "toString formats date and time" {
