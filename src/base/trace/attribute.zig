@@ -5,7 +5,7 @@ const Allocator = std.mem.Allocator;
 const Writer = std.Io.Writer;
 
 const root = @import("../root.zig");
-const String = root.string.String;
+const String = root.String;
 
 key: []const u8,
 value: Value,

@@ -50,7 +50,7 @@ pub fn register(self: *@This(), meta: Type.Meta, span: ?Span) Allocator.Error!Ty
     if (span == null) {
         return rv;
     }
-    var event = span.?.startEvent(.verbose, "@This().register");
+    var event = span.?.startEvent(.verbose, "Type.Registry.register");
     try event.addAttrs(&.{
         .{ .key = "name", .value = .{ .StringView = meta.name } },
         .{ .key = "addr", .value = .{ .Uint = meta.addr.val } },
@@ -71,9 +71,8 @@ pub fn typeToId(self: *const @This(), comptime T: type) ?Type.Id {
 pub fn addrToId(self: *const @This(), addr: Type.Address) ?Type.Id {
     if (self.addr_to_id.get(addr)) |id_val| {
         return Type.Id{ .val = id_val, .registry = self };
-    } else {
-        return null;
     }
+    return null;
 }
 
 const expect = std.testing.expect;

@@ -7,7 +7,6 @@ const Type = base.Type;
 
 pub const Val = usize;
 pub const INVALID_ID: Val = std.math.maxInt(Val);
-pub const invalid = @This(){};
 
 val: Val = INVALID_ID,
 registry: *const Type.Registry,
@@ -61,6 +60,6 @@ test "validate type id" {
     const id = try registry.register(.init(u32), null);
     try expect(id.isValid());
 
-    const invalid_id = Type.Id{ .val = @as(Type.Id.Val, 9999), .registry = &registry };
+    const invalid_id = Type.Id{ .val = INVALID_ID, .registry = &registry };
     try expect(!invalid_id.isValid());
 }
