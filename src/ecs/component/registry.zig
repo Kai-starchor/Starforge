@@ -1,3 +1,6 @@
+//! A registry for component types in the ECS, providing stable IDs and metadata for each
+//! registered type.
+
 const std = @import("std");
 const Allocator = std.mem.Allocator;
 
@@ -8,7 +11,13 @@ const Type = base.Type;
 const Component = root.Component;
 
 allocator: Allocator,
+/// Maps type addresses to stable component IDs.
+/// The type address is stable per type, but not guaranteed to be dense.
+/// The component ID is a dense index into the meta_list.
 addr_to_id: std.AutoHashMapUnmanaged(Type.Address, Component.Id.Val) = .empty,
+/// Metadata for each registered component type, indexed by the stable component ID.
+/// The order of this list is stable since component types can only be added to the registry, not removed
+/// or reordered.
 meta_list: std.ArrayList(Component.Meta) = .empty,
 
 pub fn init(allocator: Allocator) @This() {
@@ -20,6 +29,8 @@ pub fn deinit(self: *@This()) void {
     self.meta_list.deinit(self.allocator);
 }
 
+/// Registers a component type with the registry and returns its stable ID.
+/// If the component type is already registered, returns the existing ID.
 pub fn register(self: *@This(), meta: Component.Meta, span: ?Span) Allocator.Error!Component.Id {
     std.debug.assert(meta.isValid());
 
@@ -53,11 +64,13 @@ pub fn register(self: *@This(), meta: Component.Meta, span: ?Span) Allocator.Err
     return rv;
 }
 
+/// Gets the ID for a registered component type, or null if the type is not.
 pub fn typeToId(self: *@This(), comptime T: type) ?Component.Id {
     const addr = Type.Address.of(T);
     return self.addrToId(addr);
 }
 
+/// Gets the ID for a registered component type by its address, or null if the type is not.
 pub fn addrToId(self: *@This(), addr: Type.Address) ?Component.Id {
     if (self.addr_to_id.get(addr)) |existing_id| {
         return Component.Id{ .val = existing_id, .registry = self };

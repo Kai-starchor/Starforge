@@ -1,3 +1,5 @@
+//! A stable identifier for a component in the `Component.Registry`.
+
 const std = @import("std");
 
 const root = @import("../root.zig");
@@ -9,10 +11,12 @@ pub const INVALID_ID: Val = std.math.maxInt(Val);
 val: Val = INVALID_ID,
 registry: *const Component.Registry,
 
+/// Equality check based on both the ID value and the registry pointer.
 pub fn eql(self: @This(), other: @This()) bool {
     return self.val == other.val and self.registry == other.registry;
 }
 
+/// Gets the metadata for this component ID from the registry.
 pub fn meta(self: @This()) Component.Meta {
     std.debug.assert(self.val < self.registry.meta_list.items.len);
     return self.registry.meta_list.items[self.val];

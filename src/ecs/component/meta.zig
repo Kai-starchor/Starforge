@@ -1,8 +1,12 @@
+//! Metadata for a type in the `Component.Registry`.
+
 const root = @import("../root.zig");
 
 const base = root.base;
 const Type = base.Type;
 
+/// Essential functions for a component type, used to manage its lifecycle in the ECS.
+/// Used `Builder` to construct an `Interface` for a better ergonomic API.
 pub const Interface = struct {
     const VTable = struct {
         deinit: *const fn (self: *anyopaque, ctx: ?*anyopaque) void,
@@ -57,12 +61,17 @@ pub const Interface = struct {
     }
 };
 
+/// Metadata of the component type.
 type_id: Type.Id,
+/// The interface for managing the component's lifecycle.
 interface: union(enum) {
+    /// The component type does not require any special handling.
     Trivial: void,
+    /// The component type requires special handling for deinit and/or moving.
     NonTrivial: Interface,
 },
 
+/// Checks if the component type is trivial.
 pub fn isTrivial(self: @This()) bool {
     return switch (self.interface) {
         .Trivial => true,
@@ -70,6 +79,7 @@ pub fn isTrivial(self: @This()) bool {
     };
 }
 
+/// Equality based on all fields, including the type ID and interface.
 pub fn eql(self: @This(), other: @This()) bool {
     if (!self.type_id.eql(other.type_id)) return false;
 

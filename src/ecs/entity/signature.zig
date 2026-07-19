@@ -1,3 +1,8 @@
+//! A signature is a set of component IDs that describes the components an entity has.
+//!
+//! **Note: The component IDs used to construct a signature must be valid and registered in the same
+//! `Component.Registry` instance.**
+
 const Signature = @This();
 
 const std = @import("std");
@@ -7,7 +12,9 @@ const BitSet = std.DynamicBitSet;
 const root = @import("../root.zig");
 const Component = root.Component;
 
+/// Each component ID corresponds to a bit in the signature's bitset.
 mask: BitSet,
+/// A hash of the signature's bitset, used for fast equality checks and lookups.
 hash: u64 = 0,
 
 pub fn init(allocator: Allocator) @This() {
@@ -79,6 +86,7 @@ pub fn has(self: *const @This(), id: Component.Id.Val) bool {
     return id < self.mask.capacity() and self.mask.isSet(id);
 }
 
+/// Checks if this signature contains all the component IDs in the other signature.
 pub fn contains(self: *const @This(), other: *const @This()) bool {
     var it = other.mask.iterator(.{});
     while (it.next()) |bit_index| {
@@ -89,6 +97,7 @@ pub fn contains(self: *const @This(), other: *const @This()) bool {
     return true;
 }
 
+/// Checks if this signature has any components in common with another signature.
 pub fn intersects(self: *const @This(), other: *const @This()) bool {
     var it = self.mask.iterator(.{});
     while (it.next()) |bit_index| {
@@ -99,6 +108,7 @@ pub fn intersects(self: *const @This(), other: *const @This()) bool {
     return false;
 }
 
+/// A hash map that uses signatures as keys and stores values of type T.
 pub fn Lookup(comptime T: type) type {
     return std.HashMap(@This(), T, struct {
         pub fn hash(_: @This(), key: Signature) u64 {
