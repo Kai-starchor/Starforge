@@ -59,6 +59,14 @@ pub const Interface = struct {
             }
         };
     }
+
+    pub fn deinit(interface: @This(), self_ptr: *anyopaque) void {
+        interface.vtable.deinit(self_ptr, interface.ctx);
+    }
+
+    pub fn move(interface: @This(), dst: *anyopaque, src: *anyopaque) void {
+        interface.vtable.move(dst, src, interface.ctx);
+    }
 };
 
 /// Metadata of the component type.
@@ -138,10 +146,10 @@ test "Interface forwards typed component pointers and context" {
     var src = Component{ .value = 4 };
     var dst = Component{ .value = 0 };
 
-    interface.vtable.move(@ptrCast(&dst), @ptrCast(&src), interface.ctx);
+    interface.move(@ptrCast(&dst), @ptrCast(&src));
     try expectEqual(7, dst.value);
 
-    interface.vtable.deinit(@ptrCast(&dst), interface.ctx);
+    interface.deinit(@ptrCast(&dst));
     try expectEqual(0, dst.value);
     try expectEqual(1, context.deinit_count);
 }
@@ -156,10 +164,10 @@ test "Interface supports null context with default callbacks" {
     var src = Component{ .value = 4 };
     var dst = Component{ .value = 0 };
 
-    interface.vtable.move(@ptrCast(&dst), @ptrCast(&src), interface.ctx);
+    interface.move(@ptrCast(&dst), @ptrCast(&src));
     try expectEqual(4, dst.value);
 
-    interface.vtable.deinit(@ptrCast(&dst), interface.ctx);
+    interface.deinit(@ptrCast(&dst));
     try expectEqual(4, dst.value);
 }
 

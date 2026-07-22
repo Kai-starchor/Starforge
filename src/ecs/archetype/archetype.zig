@@ -12,5 +12,6 @@ test {
     _ = Id;
     _ = Meta;
     _ = Chunk;
+    _ = Chunk.Layout;
     _ = Registry;
 }

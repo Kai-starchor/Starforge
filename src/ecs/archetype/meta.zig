@@ -81,8 +81,8 @@ const TestContext = struct {
     type_registry: Type.Registry,
     comp_registry: Component.Registry,
 
-    pub fn init(allocator: Allocator) TestContext {
-        return TestContext{
+    pub fn init(allocator: Allocator) @This() {
+        return .{
             .type_registry = Type.Registry.init(allocator),
             .comp_registry = Component.Registry.init(allocator),
         };
@@ -93,32 +93,12 @@ const TestContext = struct {
         self.comp_registry.deinit();
     }
 
-    pub fn generateMeta(self: *@This(), allocator: Allocator) Allocator.Error!Meta {
-        const tid_u32 = try self.type_registry.register(.init(u32), null);
-        const cid_u32 = try self.comp_registry.register(.{
-            .type_id = tid_u32,
+    pub fn register(self: *@This(), comptime T: type) Allocator.Error!Component.Id {
+        const type_id = try self.type_registry.register(.init(T), null);
+        return try self.comp_registry.register(.{
+            .type_id = type_id,
             .interface = .Trivial,
         }, null);
-
-        const tid_u32_2 = try self.type_registry.register(.init([2]u32), null);
-        const cid_u32_2 = try self.comp_registry.register(.{
-            .type_id = tid_u32_2,
-            .interface = .Trivial,
-        }, null);
-
-        const tid_u64 = try self.type_registry.register(.init(u64), null);
-        const cid_u64 = try self.comp_registry.register(.{
-            .type_id = tid_u64,
-            .interface = .Trivial,
-        }, null);
-
-        const tid_i32 = try self.type_registry.register(.init(i32), null);
-        const cid_i32 = try self.comp_registry.register(.{
-            .type_id = tid_i32,
-            .interface = .Trivial,
-        }, null);
-
-        return try .init(allocator, .{}, &.{ cid_i32, cid_u32, cid_u32_2, cid_u64 });
     }
 };
 
@@ -126,7 +106,16 @@ test "init sorts columns, builds signature and lookup" {
     var ctx = TestContext.init(std.testing.allocator);
     defer ctx.deinit();
 
-    var meta = try ctx.generateMeta(std.testing.allocator);
+    const cid_u32 = try ctx.register(u32);
+    const cid_u32_2 = try ctx.register([2]u32);
+    const cid_u64 = try ctx.register(u64);
+    const cid_i32 = try ctx.register(i32);
+
+    var meta = try Meta.init(
+        std.testing.allocator,
+        .{ .val = 0, .generation = 0 },
+        &.{ cid_i32, cid_u32, cid_u32_2, cid_u64 },
+    );
     defer meta.deinit(std.testing.allocator);
 
     try expectEqual(4, meta.columns.items.len);
