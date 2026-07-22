@@ -2,6 +2,7 @@ const std = @import("std");
 
 const base = @import("src/base/build_mod.zig");
 const ecs = @import("src/ecs/build_mod.zig");
+const window = @import("src/window/build_mod.zig");
 
 const Allocator = std.mem.Allocator;
 
@@ -15,22 +16,25 @@ pub fn build(b: *std.Build) void {
     const ecs_mod = ecs.build(b, target, optimize, &.{
         .{ .name = base.MOD_NAME, .module = base_mod },
     });
-
-    const mods = [_]std.Build.Module.Import{
+    const window_mod = window.build(b, target, optimize, &.{
         .{ .name = base.MOD_NAME, .module = base_mod },
-        .{ .name = ecs.MOD_NAME, .module = ecs_mod },
-    };
+    });
 
     const starforge_mod = b.addModule(PROJECT_NAME, .{
         .root_source_file = b.path("src/root.zig"),
         .target = target,
         .optimize = optimize,
-        .imports = &mods,
+        .imports = &.{
+            .{ .name = base.MOD_NAME, .module = base_mod },
+            .{ .name = ecs.MOD_NAME, .module = ecs_mod },
+            .{ .name = window.MOD_NAME, .module = window_mod },
+        },
     });
 
     const test_step = b.step("test", "Run all tests");
     test_step.dependOn(buildTest(b, base.MOD_NAME, base_mod));
     test_step.dependOn(buildTest(b, ecs.MOD_NAME, ecs_mod));
+    test_step.dependOn(buildTest(b, window.MOD_NAME, window_mod));
 
     buildExamples(b, target, optimize, starforge_mod);
 }
