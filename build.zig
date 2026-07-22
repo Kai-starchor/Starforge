@@ -1,61 +1,52 @@
 const std = @import("std");
 
+const base = @import("src/base/build_mod.zig");
+const ecs = @import("src/ecs/build_mod.zig");
+
 const Allocator = std.mem.Allocator;
+
+const PROJECT_NAME = "starforge";
 
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    const base_mod = b.addModule("starforge_base", .{
-        .root_source_file = b.path("src/base/root.zig"),
-        .target = target,
-        .optimize = optimize,
+    const base_mod = base.build(b, target, optimize);
+    const ecs_mod = ecs.build(b, target, optimize, &.{
+        .{ .name = base.MOD_NAME, .module = base_mod },
     });
-
-    const ecs_mod = b.addModule("starforge_ecs", .{
-        .root_source_file = b.path("src/ecs/root.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
-    ecs_mod.addImport("base", base_mod);
 
     const mods = [_]std.Build.Module.Import{
-        .{ .name = "base", .module = base_mod },
-        .{ .name = "ecs", .module = ecs_mod },
+        .{ .name = base.MOD_NAME, .module = base_mod },
+        .{ .name = ecs.MOD_NAME, .module = ecs_mod },
     };
 
-    const starforge_mod = b.addModule("starforge", .{
+    const starforge_mod = b.addModule(PROJECT_NAME, .{
         .root_source_file = b.path("src/root.zig"),
         .target = target,
         .optimize = optimize,
+        .imports = &mods,
     });
-    starforge_mod.addImport("base", base_mod);
-    starforge_mod.addImport("ecs", ecs_mod);
 
-    buildTests(b, &mods);
+    const test_step = b.step("test", "Run all tests");
+    test_step.dependOn(buildTest(b, base.MOD_NAME, base_mod));
+    test_step.dependOn(buildTest(b, ecs.MOD_NAME, ecs_mod));
+
     buildExamples(b, target, optimize, starforge_mod);
 }
 
-fn buildTests(b: *std.Build, mods: []const std.Build.Module.Import) void {
-    const test_all_step = b.step("test", "Run all tests");
+pub fn buildTest(b: *std.Build, comptime name: []const u8, mod: *std.Build.Module) *std.Build.Step {
+    const prefix = "test-" ++ name;
+    const mod_tests = b.addTest(.{
+        .name = prefix,
+        .root_module = mod,
+    });
 
-    for (mods) |mod_entry| {
-        const name = mod_entry.name;
-        const mod = mod_entry.module;
-
-        const prefix = std.fmt.allocPrint(b.allocator, "test-{s}", .{name}) catch @panic("OOM");
-        const mod_tests = b.addTest(.{
-            .name = prefix,
-            .root_module = mod,
-        });
-
-        const test_step_desc =
-            std.fmt.allocPrint(b.allocator, "Run tests of {s}", .{name}) catch @panic("OOM");
-        const test_step = b.step(prefix, test_step_desc);
-        const test_mod_cmd = b.addRunArtifact(mod_tests);
-        test_step.dependOn(&test_mod_cmd.step);
-        test_all_step.dependOn(&test_mod_cmd.step);
-    }
+    const test_step_desc = "Run tests of " ++ name;
+    const test_step = b.step(prefix, test_step_desc);
+    const test_mod_cmd = b.addRunArtifact(mod_tests);
+    test_step.dependOn(&test_mod_cmd.step);
+    return &test_mod_cmd.step;
 }
 
 fn buildExamples(
@@ -74,7 +65,7 @@ fn buildExamples(
         const name = example_config.name;
         const path = example_config.path;
 
-        const prefix = std.fmt.allocPrint(b.allocator, "example-{s}", .{name}) catch @panic("OOM");
+        const prefix = "examples-" ++ name;
         const example_mod = b.addModule(prefix, .{
             .root_source_file = b.path(path),
             .target = target,
@@ -89,8 +80,7 @@ fn buildExamples(
         const build_example_cmd = b.addInstallArtifact(example, .{});
 
         // Add cmd: zig build example-{name}
-        const run_step_desc =
-            std.fmt.allocPrint(b.allocator, "Run example: {s}", .{name}) catch @panic("OOM");
+        const run_step_desc = "Run example: " ++ name;
         const run_step = b.step(prefix, run_step_desc);
         const run_example_cmd = b.addRunArtifact(example);
         run_example_cmd.step.dependOn(&build_example_cmd.step);
