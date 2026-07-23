@@ -47,6 +47,10 @@ pub const Level = enum(u8) {
             .fatal => "FATAL",
         };
     }
+
+    pub fn lessThan(self: @This(), other: @This()) bool {
+        return @intFromEnum(self) < @intFromEnum(other);
+    }
 };
 
 pub fn start(span: Span, level: Level, name: []const u8) @This() {

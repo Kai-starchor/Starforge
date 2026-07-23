@@ -153,6 +153,15 @@ pub fn addAttrs(self: *@This(), attrs: []const Attribute) Allocator.Error!void {
     try self.attrs.appendSlice(self.trace.logger.getAllocator(), attrs);
 }
 
+/// If the event level is below the trace's event level, return null.
+pub fn tryStartEvent(self: @This(), level: Event.Level, name: []const u8) ?Event {
+    if (level.lessThan(self.trace.event_level)) {
+        return null;
+    }
+    return Event.start(self, level, name);
+}
+
+/// Start and record event anyway.
 pub fn startEvent(self: @This(), level: Event.Level, name: []const u8) Event {
     return Event.start(self, level, name);
 }

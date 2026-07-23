@@ -86,7 +86,7 @@ pub fn recordEvent(self: @This(), event: *Event) void {
             event.trace.event_level
         else
             self.event_level;
-    if (@intFromEnum(event.level) < @intFromEnum(level)) return;
+    if (event.level.lessThan(level)) return;
     self.vtable.recordEvent(self.ptr, event);
 }
 

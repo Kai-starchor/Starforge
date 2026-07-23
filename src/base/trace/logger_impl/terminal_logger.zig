@@ -124,7 +124,7 @@ fn recordEvent(self: *anyopaque, event: *root.trace.Event) void {
     defer this.io.unlockStderr();
 
     // prefix: trace_id-span_id scope_name scope_version epoch_time
-    if (@intFromEnum(event.level) < @intFromEnum(root.trace.Event.Level.info)) {
+    if (event.level.lessThan(root.trace.Event.Level.info)) {
         terminal.setColor(.dim) catch {};
     }
     writeId(terminal.writer, event.trace.id, event.span_id);
@@ -158,7 +158,7 @@ fn recordEvent(self: *anyopaque, event: *root.trace.Event) void {
     terminal.setColor(.reset) catch {};
 
     // event details
-    if (@intFromEnum(event.level) < @intFromEnum(root.trace.Event.Level.info)) {
+    if (event.level.lessThan(root.trace.Event.Level.info)) {
         terminal.setColor(.dim) catch {};
     }
     terminal.writer.print(" {s}\n", .{event.name}) catch {};

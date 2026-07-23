@@ -133,6 +133,10 @@ test "testing logger preserves attributes and links after emit" {
         .{ .key = "link.key", .value = .{ .StringView = "link.value" } },
     );
     try span.addLinks(&.{link});
+
+    const null_span = span.tryStartEvent(.verbose, "");
+    try expectEqual(null, null_span);
+
     var event = span.startEvent(.info, "started");
     try event.addAttrs(&.{.{ .key = "event.key", .value = .{ .StringView = "event.value" } }});
     event.emit();
@@ -141,7 +145,7 @@ test "testing logger preserves attributes and links after emit" {
     const events = testing_logger.events.items;
     const spans = testing_logger.spans.items;
     const records = testing_logger.records.items;
-    try expectEqual(@as(usize, 2), records.len);
+    try expectEqual(2, records.len);
 
     const event_0 = events[records[0].index];
     try expectEqualStrings("started", event_0.name);
@@ -150,7 +154,7 @@ test "testing logger preserves attributes and links after emit" {
     const span_1 = spans[records[1].index];
     try expectEqualStrings("operation", span_1.name);
     try expectEqualStrings("span.value", span_1.attrs.items[0].value.StringView);
-    try expectEqual(@as(usize, 1), span_1.links.items.len);
+    try expectEqual(1, span_1.links.items.len);
     try expectEqualStrings("link.value", span_1.links.items[0].attrs.items[0].value.StringView);
 }
 
@@ -165,6 +169,6 @@ test "testing logger filters events below the logger level" {
     event.emit();
     span.emit(.ok);
 
-    try expectEqual(@as(usize, 1), testing_logger.records.items.len);
+    try expectEqual(1, testing_logger.records.items.len);
     try expectEqual(Record.Kind.span, testing_logger.records.items[0].kind);
 }
