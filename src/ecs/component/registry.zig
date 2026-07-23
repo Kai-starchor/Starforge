@@ -50,17 +50,16 @@ pub fn register(self: *@This(), meta: Component.Meta, span: ?Span) Allocator.Err
     try self.addr_to_id.put(self.allocator, addr, rv.val);
     errdefer _ = self.addr_to_id.remove(addr);
 
-    // record side effect if a span is provided.
-    if (span == null) {
-        return rv;
-    }
-    var event = span.?.startEvent(.verbose, "Component.Registry.register");
-    try event.addAttrs(&.{
+    // record side effect if a span is provided
+    if (span == null) return rv;
+    var event = span.?.tryStartEvent(.verbose, "Component.Registry.register");
+    if (event == null) return rv;
+    try event.?.addAttrs(&.{
         .{ .key = "name", .value = .{ .StringView = type_meta.name } },
         .{ .key = "addr", .value = .{ .Uint = addr.val } },
         .{ .key = "is_trivial", .value = .{ .Bool = meta.isTrivial() } },
     });
-    event.emit();
+    event.?.emit();
     return rv;
 }
 
