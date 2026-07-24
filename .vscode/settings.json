@@ -6,22 +6,5 @@
     "editor.tabSize": 4,
     "files.insertFinalNewline": true,
     "files.trimFinalNewlines": true,
-    "files.eol": "\n",
-    "cSpell.words": [
-        // zig internal functions
-        "memcpy",
-        "memset",
-        "wyhash",
-        // project specific
-        "starforge",
-        "vtable",
-        // windows api
-        "winapi",
-    ],
-    "cSpell.ignoreRegExpList": [
-        // windows api
-        "WS(?:_EX)?_[A-Z]+",
-        "CS(?:_EX)?_[A-Z]+",
-        "WM(?:_EX)?_[A-Z]+"
-    ]
+    "files.eol": "\n"
 }

@@ -1,0 +1,21 @@
+{
+    "version": "0.2",
+    "language": "en",
+    "words": [
+        // zig internal functions
+        "memcpy",
+        "memset",
+        "wyhash",
+        // project specific
+        "starforge",
+        "vtable",
+        // windows api
+        "winapi",
+        "winuser",
+        "lpfn",
+        "lpsz"
+    ],
+    "ignoreRegExpList": [
+        "/\\b[A-Z][A-Z0-9_]{2,}\\b/g",
+    ]
+}
