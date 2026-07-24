@@ -13,3 +13,8 @@ pub const ecs = struct {
     pub const Component = impl.Component;
     pub const Entity = impl.Entity;
 };
+
+pub const window = struct {
+    const impl = @import("window");
+    pub const windows = impl.windows;
+};

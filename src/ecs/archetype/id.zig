@@ -4,7 +4,7 @@ const std = @import("std");
 
 pub const INVALID_ID: usize = std.math.maxInt(usize);
 pub const INVALID_GENERATION: usize = std.math.maxInt(usize);
-pub const invalid: @This() = .{};
+pub const invalid = @This(){};
 
 /// The index of an archetype.
 val: usize = INVALID_ID,

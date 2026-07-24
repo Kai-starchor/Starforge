@@ -15,6 +15,13 @@
         // project specific
         "starforge",
         "vtable",
-        "winapi"
+        // windows api
+        "winapi",
+    ],
+    "cSpell.ignoreRegExpList": [
+        // windows api
+        "WS(?:_EX)?_[A-Z]+",
+        "CS(?:_EX)?_[A-Z]+",
+        "WM(?:_EX)?_[A-Z]+"
     ]
 }

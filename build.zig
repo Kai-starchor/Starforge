@@ -65,6 +65,7 @@ fn buildExamples(
     }{
         .{ .name = "hello", .path = "examples/hello.zig" },
         .{ .name = "trace", .path = "examples/trace.zig" },
+        .{ .name = "window", .path = "examples/window.zig" },
     }) |example_config| {
         const name = example_config.name;
         const path = example_config.path;
