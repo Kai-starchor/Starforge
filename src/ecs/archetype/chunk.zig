@@ -63,17 +63,7 @@ pub fn getColumn(self: @This(), col: usize) ColumnBuffer {
     return .{ .comp_id = column.comp_id, .bytes = column.bytes[0..col_end] };
 }
 
-pub const ColumnIn = struct {
-    comp_id: Component.Id,
-    bytes: []u8,
-};
-
-pub const ColumnOut = struct {
-    comp_id: Component.Id,
-    bytes: ?[]u8,
-};
-
-pub fn push(self: *@This(), eid: []Entity.Id, cols: []ColumnIn) usize {
+pub fn push(self: *@This(), eid: []Entity.Id, cols: []ColumnBuffer) usize {
     const cols_id = self.layout.meta.columns.items;
     // sanity check before operations that are hard to revert
     std.debug.assert(cols.len == cols_id.len);
@@ -91,32 +81,48 @@ pub fn push(self: *@This(), eid: []Entity.Id, cols: []ColumnIn) usize {
 
     for (cols, 0..) |col, col_idx| {
         const comp_meta = col.comp_id.meta();
-        const stride = comp_meta.type_id.meta().size;
         const col_dst = self.getColumnUnsafe(col_idx).bytes;
-        const dst_bytes = col_dst[stride * self.len ..][0 .. stride * pushed];
-        const src_bytes = col.bytes[0 .. stride * pushed];
-
-        if (comp_meta.isTrivial()) {
-            @memcpy(dst_bytes, src_bytes);
-            continue;
-        }
-
-        const interface = comp_meta.interface.NonTrivial;
-        for (0..pushed) |i| {
-            const dst_component = dst_bytes[i * stride ..][0..stride];
-            const src_component = src_bytes[i * stride ..][0..stride];
-            interface.move(
-                @ptrCast(@alignCast(dst_component)),
-                @ptrCast(@alignCast(src_component)),
-            );
-        }
+        migrateColumnData(comp_meta, col.bytes, 0, col_dst, self.len, pushed);
     }
 
     self.len += pushed;
     return pushed;
 }
 
-pub fn pop(self: *@This(), eid: []Entity.Id, cols: []ColumnOut) usize {
+/// Move `count` entities and their components at tail from `self` to `dst`.
+/// Returns the number of entities actually moved.
+/// `self` and `dst` must comes from the same archetype, otherwise the behavior is undefined.
+pub fn move(self: *@This(), dst: *@This(), count: usize) usize {
+    std.debug.assert(self.layout.meta.id.eql(dst.layout.meta.id));
+
+    const moved = @min(count, @min(self.len, dst.layout.capacity - dst.len));
+    if (moved == 0) return 0;
+
+    const src_start = self.len - moved;
+    const dst_start = dst.len;
+
+    const src_eid_col = self.getEntityIdColumnUnsafe();
+    const dst_eid_col = dst.getEntityIdColumnUnsafe();
+    @memcpy(dst_eid_col[dst_start..][0..moved], src_eid_col[src_start..][0..moved]);
+
+    for (self.layout.meta.columns.items, 0..) |col_id, col_idx| {
+        const comp_meta = col_id.meta();
+        const src_col = self.getColumnUnsafe(col_idx).bytes;
+        const dst_col = dst.getColumnUnsafe(col_idx).bytes;
+        migrateColumnData(comp_meta, src_col, src_start, dst_col, dst_start, moved);
+    }
+
+    self.len -= moved;
+    dst.len += moved;
+    return moved;
+}
+
+pub const ColumnBufferNullable = struct {
+    comp_id: Component.Id,
+    bytes: ?[]u8,
+};
+
+pub fn pop(self: *@This(), eid: []Entity.Id, cols: []ColumnBufferNullable) usize {
     const cols_id = self.layout.meta.columns.items;
     // sanity check before operations that are hard to revert
     std.debug.assert(cols.len == cols_id.len);
@@ -135,36 +141,14 @@ pub fn pop(self: *@This(), eid: []Entity.Id, cols: []ColumnOut) usize {
 
     for (cols, 0..) |col, col_idx| {
         const comp_meta = col.comp_id.meta();
-        const stride = comp_meta.type_id.meta().size;
         const col_src = self.getColumnUnsafe(col_idx).bytes;
-        const src_bytes = col_src[stride * pop_start ..][0 .. stride * popped];
 
         if (col.bytes) |dst_full| {
-            const dst_bytes = dst_full[0 .. stride * popped];
-
-            if (comp_meta.isTrivial()) {
-                @memcpy(dst_bytes, src_bytes);
-                continue;
-            }
-
-            const interface = comp_meta.interface.NonTrivial;
-            for (0..popped) |i| {
-                const dst_component = dst_bytes[i * stride ..][0..stride];
-                const src_component = src_bytes[i * stride ..][0..stride];
-                interface.move(
-                    @ptrCast(@alignCast(dst_component)),
-                    @ptrCast(@alignCast(src_component)),
-                );
-            }
+            migrateColumnData(comp_meta, col_src, pop_start, dst_full, 0, popped);
             continue;
         }
 
-        if (comp_meta.isTrivial()) continue;
-        const interface = comp_meta.interface.NonTrivial;
-        for (0..popped) |i| {
-            const src_component = src_bytes[i * stride ..][0..stride];
-            interface.deinit(@ptrCast(@alignCast(src_component)));
-        }
+        deinitColumnData(comp_meta, col_src, pop_start, popped);
     }
 
     self.len -= popped;
@@ -177,22 +161,91 @@ pub fn removeTail(self: *@This(), count: usize) void {
 
     const meta = self.layout.meta;
     const columns = meta.columns.items;
-    const columns_offset = self.layout.columns_offset.items;
-    for (columns, columns_offset) |column, offset| {
+    for (columns, 0..) |column, col_idx| {
         const comp_meta = column.meta();
-        if (comp_meta.isTrivial()) continue;
-
-        const stride = comp_meta.type_id.meta().size;
-        const column_start = stride * (self.len - removed);
-        const column_end = stride * self.len;
-        const column_slice = self.buffer.aligned[offset..][column_start..column_end];
-
-        for (0..removed) |i| {
-            const component = column_slice[i * stride ..][0..stride];
-            comp_meta.interface.NonTrivial.deinit(@ptrCast(@alignCast(component)));
-        }
+        const col_src = self.getColumnUnsafe(col_idx).bytes;
+        deinitColumnData(comp_meta, col_src, self.len - removed, removed);
     }
     self.len -= removed;
+}
+
+fn migrateColumnData(
+    comp_meta: Component.Meta,
+    src_col: []u8,
+    src_entity_start: usize,
+    dst_col: []u8,
+    dst_entity_start: usize,
+    entity_count: usize,
+) void {
+    const stride = comp_meta.type_id.meta().size;
+    const src_start = stride * src_entity_start;
+    const dst_start = stride * dst_entity_start;
+    const byte_len = stride * entity_count;
+
+    const src_bytes = src_col[src_start..][0..byte_len];
+    const dst_bytes = dst_col[dst_start..][0..byte_len];
+    std.debug.assert(src_bytes.len == dst_bytes.len);
+
+    if (comp_meta.isTrivial()) {
+        @memcpy(dst_bytes, src_bytes);
+        return;
+    }
+
+    if (stride == 0) {
+        const interface = comp_meta.interface.NonTrivial;
+        for (0..entity_count) |_| {
+            const dst_component = dst_bytes[0..0];
+            const src_component = src_bytes[0..0];
+            interface.move(
+                @ptrCast(@alignCast(dst_component)),
+                @ptrCast(@alignCast(src_component)),
+            );
+        }
+        return;
+    }
+
+    std.debug.assert(src_bytes.len == stride * entity_count);
+
+    const interface = comp_meta.interface.NonTrivial;
+    for (0..entity_count) |i| {
+        const dst_component = dst_bytes[i * stride ..][0..stride];
+        const src_component = src_bytes[i * stride ..][0..stride];
+        interface.move(
+            @ptrCast(@alignCast(dst_component)),
+            @ptrCast(@alignCast(src_component)),
+        );
+    }
+}
+
+fn deinitColumnData(
+    comp_meta: Component.Meta,
+    src_col: []u8,
+    src_entity_start: usize,
+    entity_count: usize,
+) void {
+    const stride = comp_meta.type_id.meta().size;
+    const src_start = stride * src_entity_start;
+    const byte_len = stride * entity_count;
+    const src_bytes = src_col[src_start..][0..byte_len];
+
+    if (comp_meta.isTrivial()) return;
+
+    if (stride == 0) {
+        const interface = comp_meta.interface.NonTrivial;
+        for (0..entity_count) |_| {
+            const src_component = src_bytes[0..0];
+            interface.deinit(@ptrCast(@alignCast(src_component)));
+        }
+        return;
+    }
+
+    std.debug.assert(src_bytes.len == stride * entity_count);
+
+    const interface = comp_meta.interface.NonTrivial;
+    for (0..entity_count) |i| {
+        const src_component = src_bytes[i * stride ..][0..stride];
+        interface.deinit(@ptrCast(@alignCast(src_component)));
+    }
 }
 
 const expectEqual = std.testing.expectEqual;
@@ -294,7 +347,7 @@ const TestContext = struct {
 
     fn bindColumnIn(
         self: @This(),
-        cols: *[2]ColumnIn,
+        cols: *[2]ColumnBuffer,
         u8_values: []u8,
         managed_values: []Managed,
     ) void {
@@ -310,7 +363,7 @@ const TestContext = struct {
 
     fn bindColumnOut(
         self: @This(),
-        cols: *[2]ColumnOut,
+        cols: *[2]ColumnBufferNullable,
         u8_values: ?[]u8,
         managed_values: ?[]Managed,
     ) void {
@@ -337,7 +390,7 @@ test "push writes columns and uses move for non-trivial components" {
     var u8_values = [_]u8{ 5, 9 };
     var managed_values = [_]Managed{ .{ .value = 1 }, .{ .value = 2 } };
 
-    var cols: [2]ColumnIn = undefined;
+    var cols: [2]ColumnBuffer = undefined;
     ctx.bindColumnIn(&cols, u8_values[0..], managed_values[0..]);
 
     const pushed = ctx.chunk.push(entities[0..], cols[0..]);
@@ -369,14 +422,14 @@ test "pop moves to outputs and shrinks from tail" {
     };
     var u8_values = [_]u8{ 3, 4 };
     var managed_values = [_]Managed{ .{ .value = 7 }, .{ .value = 9 } };
-    var cols_in: [2]ColumnIn = undefined;
+    var cols_in: [2]ColumnBuffer = undefined;
     ctx.bindColumnIn(&cols_in, u8_values[0..], managed_values[0..]);
     _ = ctx.chunk.push(entities[0..], cols_in[0..]);
 
     var pop_entities = [_]Entity.Id{.invalid};
     var pop_u8 = [_]u8{0};
     var pop_managed = [_]Managed{.{ .value = 0 }};
-    var cols_out: [2]ColumnOut = undefined;
+    var cols_out: [2]ColumnBufferNullable = undefined;
     ctx.bindColumnOut(&cols_out, pop_u8[0..], pop_managed[0..]);
 
     const popped = ctx.chunk.pop(pop_entities[0..], cols_out[0..]);
@@ -403,12 +456,12 @@ test "pop deinit non-trivial components when output is null" {
     };
     var u8_values = [_]u8{ 1, 2, 3 };
     var managed_values = [_]Managed{ .{ .value = 1 }, .{ .value = 2 }, .{ .value = 3 } };
-    var cols_in: [2]ColumnIn = undefined;
+    var cols_in: [2]ColumnBuffer = undefined;
     ctx.bindColumnIn(&cols_in, u8_values[0..], managed_values[0..]);
     _ = ctx.chunk.push(entities[0..], cols_in[0..]);
 
     var pop_entities = [_]Entity.Id{ .invalid, .invalid };
-    var cols_out: [2]ColumnOut = undefined;
+    var cols_out: [2]ColumnBufferNullable = undefined;
     ctx.bindColumnOut(&cols_out, null, null);
 
     const popped = ctx.chunk.pop(pop_entities[0..], cols_out[0..]);
@@ -431,7 +484,7 @@ test "removeTail deinit non-trivial components and supports count overflow" {
     };
     var u8_values = [_]u8{ 8, 9 };
     var managed_values = [_]Managed{ .{ .value = 5 }, .{ .value = 6 } };
-    var cols_in: [2]ColumnIn = undefined;
+    var cols_in: [2]ColumnBuffer = undefined;
     ctx.bindColumnIn(&cols_in, u8_values[0..], managed_values[0..]);
     _ = ctx.chunk.push(entities[0..], cols_in[0..]);
 
@@ -452,7 +505,7 @@ test "push and pop are clipped by capacity and length" {
     };
     var u8_values = [_]u8{ 1, 2, 3 };
     var managed_values = [_]Managed{ .{ .value = 1 }, .{ .value = 2 }, .{ .value = 3 } };
-    var cols_in: [2]ColumnIn = undefined;
+    var cols_in: [2]ColumnBuffer = undefined;
     ctx.bindColumnIn(&cols_in, u8_values[0..], managed_values[0..]);
 
     const pushed = ctx.chunk.push(entities[0..], cols_in[0..]);
@@ -462,10 +515,184 @@ test "push and pop are clipped by capacity and length" {
     var pop_entities = [_]Entity.Id{ .invalid, .invalid, .invalid };
     var pop_u8 = [_]u8{ 0, 0, 0 };
     var pop_managed = [_]Managed{ .{ .value = 0 }, .{ .value = 0 }, .{ .value = 0 } };
-    var cols_out: [2]ColumnOut = undefined;
+    var cols_out: [2]ColumnBufferNullable = undefined;
     ctx.bindColumnOut(&cols_out, pop_u8[0..], pop_managed[0..]);
 
     const popped = ctx.chunk.pop(pop_entities[0..], cols_out[0..]);
     try expectEqual(2, popped);
     try expectEqual(0, ctx.chunk.len);
+}
+
+test "move transfers tail entities and columns" {
+    var ctx = TestContext.initRegistry(std.testing.allocator);
+    try ctx.initChunk(std.testing.allocator, 5);
+    defer ctx.deinit(std.testing.allocator);
+
+    var dst_chunk = try Chunk.init(std.testing.allocator, &ctx.layout);
+    defer dst_chunk.deinit(std.testing.allocator);
+
+    var entities = [_]Entity.Id{
+        .{ .val = 1, .generation = 9 },
+        .{ .val = 2, .generation = 9 },
+        .{ .val = 3, .generation = 9 },
+    };
+    var u8_values = [_]u8{ 10, 20, 30 };
+    var managed_values = [_]Managed{ .{ .value = 1 }, .{ .value = 2 }, .{ .value = 3 } };
+    var cols_in: [2]ColumnBuffer = undefined;
+    ctx.bindColumnIn(&cols_in, u8_values[0..], managed_values[0..]);
+    _ = ctx.chunk.push(entities[0..], cols_in[0..]);
+
+    const moved = ctx.chunk.move(&dst_chunk, 2);
+    try expectEqual(2, moved);
+    try expectEqual(1, ctx.chunk.len);
+    try expectEqual(2, dst_chunk.len);
+    try expectEqual(5, ctx.managed_ctx.move_count);
+
+    try expectEqual(2, dst_chunk.getEntityIdColumn()[0].val);
+    try expectEqual(3, dst_chunk.getEntityIdColumn()[1].val);
+
+    const u8_col = dst_chunk.getColumn(ctx.colIndex(ctx.comp_u8));
+    try expectEqualSlices(u8, &.{ 20, 30 }, u8_col.bytes);
+
+    const managed_col = dst_chunk.getColumn(ctx.colIndex(ctx.comp_managed));
+    const managed_bytes: []align(@alignOf(Managed)) u8 = @alignCast(managed_col.bytes);
+    const managed_out = std.mem.bytesAsSlice(Managed, managed_bytes);
+    try expectEqual(22, managed_out[0].value);
+    try expectEqual(23, managed_out[1].value);
+}
+
+test "move is clipped by source length and destination capacity" {
+    var ctx = TestContext.initRegistry(std.testing.allocator);
+    try ctx.initChunk(std.testing.allocator, 2);
+    defer ctx.deinit(std.testing.allocator);
+
+    var src_entities = [_]Entity.Id{
+        .{ .val = 1, .generation = 4 },
+        .{ .val = 2, .generation = 4 },
+    };
+    var src_u8_values = [_]u8{ 7, 8 };
+    var src_managed_values = [_]Managed{ .{ .value = 1 }, .{ .value = 2 } };
+    var src_cols_in: [2]ColumnBuffer = undefined;
+    ctx.bindColumnIn(&src_cols_in, src_u8_values[0..], src_managed_values[0..]);
+    _ = ctx.chunk.push(src_entities[0..], src_cols_in[0..]);
+
+    var dst_chunk = try Chunk.init(std.testing.allocator, &ctx.layout);
+    defer dst_chunk.deinit(std.testing.allocator);
+
+    var dst_entities = [_]Entity.Id{.{ .val = 99, .generation = 4 }};
+    var dst_u8_values = [_]u8{5};
+    var dst_managed_values = [_]Managed{.{ .value = 9 }};
+    var dst_cols_in: [2]ColumnBuffer = undefined;
+    ctx.bindColumnIn(&dst_cols_in, dst_u8_values[0..], dst_managed_values[0..]);
+    _ = dst_chunk.push(dst_entities[0..], dst_cols_in[0..]);
+
+    const moved = ctx.chunk.move(&dst_chunk, 10);
+    try expectEqual(1, moved);
+    try expectEqual(1, ctx.chunk.len);
+    try expectEqual(2, dst_chunk.len);
+
+    const dst_eid = dst_chunk.getEntityIdColumn();
+    try expectEqual(99, dst_eid[0].val);
+    try expectEqual(2, dst_eid[1].val);
+}
+
+test "zero-sized non-trivial components work across push move pop and removeTail" {
+    const ZstManagedCtx = struct {
+        move_count: usize = 0,
+        deinit_count: usize = 0,
+    };
+    const ZstManaged = struct {
+        pub fn move(_: *@This(), _: *@This(), ctx: ?*ZstManagedCtx) void {
+            const typed_ctx = ctx orelse unreachable;
+            typed_ctx.move_count += 1;
+        }
+
+        pub fn deinit(_: *@This(), ctx: ?*ZstManagedCtx) void {
+            const typed_ctx = ctx orelse unreachable;
+            typed_ctx.deinit_count += 1;
+        }
+    };
+
+    var type_registry = Type.Registry.init(std.testing.allocator);
+    defer type_registry.deinit();
+    var comp_registry = Component.Registry.init(std.testing.allocator);
+    defer comp_registry.deinit();
+
+    const comp_u8_type = try type_registry.register(.init(u8), null);
+    const comp_u8 = try comp_registry.register(.{
+        .type_id = comp_u8_type,
+        .interface = .Trivial,
+    }, null);
+
+    var zst_ctx = ZstManagedCtx{};
+    const comp_zst_type = try type_registry.register(.init(ZstManaged), null);
+    const Builder = Component.Meta.Interface.Builder(ZstManaged, ZstManagedCtx);
+    const comp_zst = try comp_registry.register(.{
+        .type_id = comp_zst_type,
+        .interface = .{ .NonTrivial = Builder.build(&.{
+            .deinit = ZstManaged.deinit,
+            .move = ZstManaged.move,
+        }, &zst_ctx) },
+    }, null);
+
+    var meta = try Archetype.Meta.init(
+        std.testing.allocator,
+        .{ .val = 0, .generation = 0 },
+        &.{ comp_u8, comp_zst },
+    );
+    defer meta.deinit(std.testing.allocator);
+
+    var layout = try Layout.init(std.testing.allocator, &meta);
+    defer layout.deinit(std.testing.allocator);
+    layout.resetWithCapacity(4);
+
+    var src = try Chunk.init(std.testing.allocator, &layout);
+    defer src.deinit(std.testing.allocator);
+    var dst = try Chunk.init(std.testing.allocator, &layout);
+    defer dst.deinit(std.testing.allocator);
+
+    const idx_u8 = meta.comp_lookup.get(comp_u8.val).?;
+    const idx_zst = meta.comp_lookup.get(comp_zst.val).?;
+
+    var entities = [_]Entity.Id{
+        .{ .val = 1, .generation = 1 },
+        .{ .val = 2, .generation = 1 },
+        .{ .val = 3, .generation = 1 },
+    };
+    var u8_values = [_]u8{ 4, 5, 6 };
+    var zst_values: [0]u8 = .{};
+    var cols_in: [2]ColumnBuffer = undefined;
+    cols_in[idx_u8] = .{ .comp_id = comp_u8, .bytes = u8_values[0..] };
+    cols_in[idx_zst] = .{ .comp_id = comp_zst, .bytes = zst_values[0..] };
+
+    const pushed = src.push(entities[0..], cols_in[0..]);
+    try expectEqual(3, pushed);
+    try expectEqual(3, zst_ctx.move_count);
+
+    const moved = src.move(&dst, 2);
+    try expectEqual(2, moved);
+    try expectEqual(5, zst_ctx.move_count);
+
+    var pop_eid = [_]Entity.Id{.invalid};
+    var pop_u8 = [_]u8{0};
+    var pop_zst: [0]u8 = .{};
+    var cols_out_move: [2]ColumnBufferNullable = undefined;
+    cols_out_move[idx_u8] = .{ .comp_id = comp_u8, .bytes = pop_u8[0..] };
+    cols_out_move[idx_zst] = .{ .comp_id = comp_zst, .bytes = pop_zst[0..] };
+
+    const popped_with_move = dst.pop(pop_eid[0..], cols_out_move[0..]);
+    try expectEqual(1, popped_with_move);
+    try expectEqual(6, zst_ctx.move_count);
+
+    var pop_eid_null = [_]Entity.Id{.invalid};
+    var cols_out_deinit: [2]ColumnBufferNullable = undefined;
+    cols_out_deinit[idx_u8] = .{ .comp_id = comp_u8, .bytes = null };
+    cols_out_deinit[idx_zst] = .{ .comp_id = comp_zst, .bytes = null };
+
+    const popped_with_deinit = dst.pop(pop_eid_null[0..], cols_out_deinit[0..]);
+    try expectEqual(1, popped_with_deinit);
+    try expectEqual(1, zst_ctx.deinit_count);
+
+    src.removeTail(1);
+    try expectEqual(2, zst_ctx.deinit_count);
 }
