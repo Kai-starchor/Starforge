@@ -373,7 +373,7 @@ test "pop moves to outputs and shrinks from tail" {
     ctx.bindColumnIn(&cols_in, u8_values[0..], managed_values[0..]);
     _ = ctx.chunk.push(entities[0..], cols_in[0..]);
 
-    var pop_entities = [_]Entity.Id{Entity.Id.invalid};
+    var pop_entities = [_]Entity.Id{.invalid};
     var pop_u8 = [_]u8{0};
     var pop_managed = [_]Managed{.{ .value = 0 }};
     var cols_out: [2]ColumnOut = undefined;
@@ -407,7 +407,7 @@ test "pop deinit non-trivial components when output is null" {
     ctx.bindColumnIn(&cols_in, u8_values[0..], managed_values[0..]);
     _ = ctx.chunk.push(entities[0..], cols_in[0..]);
 
-    var pop_entities = [_]Entity.Id{ Entity.Id.invalid, Entity.Id.invalid };
+    var pop_entities = [_]Entity.Id{ .invalid, .invalid };
     var cols_out: [2]ColumnOut = undefined;
     ctx.bindColumnOut(&cols_out, null, null);
 
@@ -459,7 +459,7 @@ test "push and pop are clipped by capacity and length" {
     try expectEqual(2, pushed);
     try expectEqual(2, ctx.chunk.len);
 
-    var pop_entities = [_]Entity.Id{ Entity.Id.invalid, Entity.Id.invalid, Entity.Id.invalid };
+    var pop_entities = [_]Entity.Id{ .invalid, .invalid, .invalid };
     var pop_u8 = [_]u8{ 0, 0, 0 };
     var pop_managed = [_]Managed{ .{ .value = 0 }, .{ .value = 0 }, .{ .value = 0 } };
     var cols_out: [2]ColumnOut = undefined;

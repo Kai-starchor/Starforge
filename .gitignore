@@ -2,9 +2,5 @@
 /.zig-cache
 /zig-out
 
-# IDE settings
-/.vscode
-/.idea
-
 # OS files
 .DS_Store
