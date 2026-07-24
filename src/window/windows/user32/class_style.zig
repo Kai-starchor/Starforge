@@ -55,9 +55,3 @@ pub const CS_VREDRAW: Val = 0x0000_0001;
 /// Extra style present in winuser.h but not listed in the linked class-style page constants table.
 /// Enables support for Input Method Editor (IME) windows.
 pub const CS_IME: Val = 0x0001_0000;
-
-pub fn aggregate(styles: []const Val) Val {
-    var merged: Val = 0;
-    for (styles) |style| merged |= style;
-    return merged;
-}

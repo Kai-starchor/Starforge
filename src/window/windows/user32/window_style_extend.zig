@@ -63,17 +63,10 @@ pub const WS_EX_NOPARENTNOTIFY: Val = 0x0000_0004;
 pub const WS_EX_NOREDIRECTIONBITMAP: Val = 0x0020_0000;
 
 /// A combined style of `WS_EX_WINDOWEDGE` and `WS_EX_CLIENTEDGE`.
-pub const WS_EX_OVERLAPPEDWINDOW = aggregate(&.{
-    WS_EX_WINDOWEDGE,
-    WS_EX_CLIENTEDGE,
-});
+pub const WS_EX_OVERLAPPEDWINDOW = (WS_EX_WINDOWEDGE | WS_EX_CLIENTEDGE);
 
 /// A combined style of `WS_EX_WINDOWEDGE`, `WS_EX_TOOLWINDOW`, and `WS_EX_TOPMOST`.
-pub const WS_EX_PALETTEWINDOW = aggregate(&.{
-    WS_EX_WINDOWEDGE,
-    WS_EX_TOOLWINDOW,
-    WS_EX_TOPMOST,
-});
+pub const WS_EX_PALETTEWINDOW = (WS_EX_WINDOWEDGE | WS_EX_TOOLWINDOW | WS_EX_TOPMOST);
 
 /// The window has generic right-aligned properties.
 /// This style has effect only when shell language supports bidirectional reading order.
@@ -102,9 +95,3 @@ pub const WS_EX_TRANSPARENT: Val = 0x0000_0020;
 
 /// The window has a raised edge border.
 pub const WS_EX_WINDOWEDGE: Val = 0x0000_0100;
-
-pub fn aggregate(styles: []const Val) Val {
-    var merged: Val = 0;
-    for (styles) |style| merged |= style;
-    return merged;
-}

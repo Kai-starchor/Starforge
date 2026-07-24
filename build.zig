@@ -70,7 +70,7 @@ fn buildExamples(
         const name = example_config.name;
         const path = example_config.path;
 
-        const prefix = "examples-" ++ name;
+        const prefix = "example-" ++ name;
         const example_mod = b.addModule(prefix, .{
             .root_source_file = b.path(path),
             .target = target,

@@ -65,25 +65,15 @@ pub const WS_MINIMIZEBOX: Val = 0x0002_0000;
 pub const WS_OVERLAPPED: Val = 0x0000_0000;
 
 /// A standard overlapped window.
-pub const WS_OVERLAPPEDWINDOW = aggregate(&.{
-    WS_OVERLAPPED,
-    WS_CAPTION,
-    WS_SYSMENU,
-    WS_THICKFRAME,
-    WS_MINIMIZEBOX,
-    WS_MAXIMIZEBOX,
-});
+pub const WS_OVERLAPPEDWINDOW =
+    (WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX);
 
 /// The window is a popup window.
 /// Cannot be used with `WS_CHILD`; commonly combined with `WS_POPUPWINDOW` for top-level popup UI.
 pub const WS_POPUP: Val = 0x8000_0000;
 
 /// A popup window with border and system menu.
-pub const WS_POPUPWINDOW = aggregate(&.{
-    WS_POPUP,
-    WS_BORDER,
-    WS_SYSMENU,
-});
+pub const WS_POPUPWINDOW = (WS_POPUP | WS_BORDER | WS_SYSMENU);
 
 /// The window has a sizing border. Same as `WS_THICKFRAME`.
 pub const WS_SIZEBOX = WS_THICKFRAME;
@@ -112,9 +102,3 @@ pub const WS_VSCROLL: Val = 0x0020_0000;
 
 /// Same as `WS_OVERLAPPEDWINDOW`.
 pub const WS_TILEDWINDOW = WS_OVERLAPPEDWINDOW;
-
-pub fn aggregate(styles: []const Val) Val {
-    var merged: Val = 0;
-    for (styles) |style| merged |= style;
-    return merged;
-}
